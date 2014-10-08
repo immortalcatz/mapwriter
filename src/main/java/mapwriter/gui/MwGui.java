@@ -163,7 +163,6 @@ public class MwGui extends GuiScreen {
     }
     
     public void mergeMapViewToImage() {
-			this.mw.chunkManager.saveChunks();
 			this.mw.executor.addTask(new MergeTask(this.mw.regionManager,
 					(int) this.mapView.getX(),
 					(int) this.mapView.getZ(),

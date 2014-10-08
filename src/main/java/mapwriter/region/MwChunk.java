@@ -1,5 +1,6 @@
 package mapwriter.region;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -20,6 +21,8 @@ public class MwChunk implements IChunk {
   public final byte[] biomeArray;
 
   public final int maxY;
+  
+  public int visibilityFlags = 0; // used to take some notes about which chunks are visible and should be safed
 
   public MwChunk(int x, int z, int dimension, byte[][] msbArray, byte[][] lsbArray, byte[][] metaArray, byte[][] lightingArray, byte[] biomeArray) {
     this.x = x;
@@ -30,15 +33,16 @@ public class MwChunk implements IChunk {
     this.metaArray = metaArray;
     this.biomeArray = biomeArray;
     this.lightingArray = lightingArray;
-    int maxY = 0;
+    int newMaxY = 0;
     for (int y = 0; y < 16; y++) {
       if (lsbArray[y] != null) {
-        maxY = (y << 4) + 15;
+        newMaxY = (y << 4) + 15;
       }
     }
-    this.maxY = maxY;
+    this.maxY = newMaxY;
   }
 
+  @Override
   public String toString() {
     return String.format("(%d, %d) dim%d", this.x, this.z, this.dimension);
   }
@@ -67,7 +71,7 @@ public class MwChunk implements IChunk {
       if (dis != null) {
         try {
 
-				//chunk NBT structure:
+          //chunk NBT structure:
           //
           //COMPOUND ""
           //COMPOUND "level"
@@ -135,10 +139,12 @@ public class MwChunk implements IChunk {
     return (this.maxY <= 0);
   }
 
+  @Override
   public int getBiome(int x, int z) {
     return (this.biomeArray != null) ? (int) (this.biomeArray[((z & 0xf) << 4) | (x & 0xf)]) & 0xff : 0;
   }
 
+  @Override
   public int getLightValue(int x, int y, int z) {
 		//int yi = (y >> 4) & 0xf;
     //int offset = ((y & 0xf) << 8) | ((z & 0xf) << 4) | (x & 0xf);
@@ -148,10 +154,12 @@ public class MwChunk implements IChunk {
     return 15;
   }
 
+  @Override
   public int getMaxY() {
     return this.maxY;
   }
 
+  @Override
   public int getBlockAndMetadata(int x, int y, int z) {
     int yi = (y >> 4) & 0xf;
     int offset = ((y & 0xf) << 8) | ((z & 0xf) << 4) | (x & 0xf);
@@ -202,19 +210,23 @@ public class MwChunk implements IChunk {
   }
 
   public boolean write(final RegionFileCache regionFileCache) {
+    final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+    try {
+      this.getNbt().writeElement(new DataOutputStream(buffer));
+    } catch (IOException e) {
+      RegionManager.logError("%s: could not write chunk (%d, %d) to memory", e, this.x, this.z);
+    }
     synchronized (regionFileCache) {
       boolean error = false;
-      RegionFile regionFile = regionFileCache.getRegionFile(this.x << 4, this.z << 4, this.dimension);
+      final RegionFile regionFile = regionFileCache.getRegionFile(this.x << 4, this.z << 4, this.dimension);
       if (!regionFile.isOpen()) {
         error = regionFile.open();
       }
       if (!error) {
-        DataOutputStream dos = regionFile.getChunkDataOutputStream(this.x & 31, this.z & 31);
+        final DataOutputStream dos = regionFile.getChunkDataOutputStream(this.x & 31, this.z & 31);
         if (dos != null) {
-          Nbt chunkNbt = this.getNbt();
           try {
-            //RegionManager.logInfo("writing chunk (%d, %d) to region file", this.x, this.z);
-            chunkNbt.writeElement(dos);
+            buffer.writeTo(dos);
           } catch (IOException e) {
             RegionManager.logError("%s: could not write chunk (%d, %d) to region file", e, this.x, this.z);
             error = true;

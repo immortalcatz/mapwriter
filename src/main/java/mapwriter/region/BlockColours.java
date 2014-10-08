@@ -21,10 +21,10 @@ public class BlockColours {
 	public static final String biomeSectionString = "[biomes]";
 	public static final String blockSectionString = "[blocks]";
 	
-	private int[] bcArray = new int[MAX_BLOCKS * MAX_META];
-	private int[] waterMultiplierArray = new int[MAX_BIOMES];
-	private int[] grassMultiplierArray = new int[MAX_BIOMES];
-	private int[] foliageMultiplierArray = new int[MAX_BIOMES];
+	private final int[] bcArray = new int[MAX_BLOCKS * MAX_META];
+	private final int[] waterMultiplierArray = new int[MAX_BIOMES];
+	private final int[] grassMultiplierArray = new int[MAX_BIOMES];
+	private final int[] foliageMultiplierArray = new int[MAX_BIOMES];
 	
 	public enum BlockType {
 		NORMAL,
@@ -35,7 +35,7 @@ public class BlockColours {
 		OPAQUE
 	}
 	
-	private BlockType[] blockTypeArray = new BlockType[MAX_BLOCKS * MAX_META];
+	private final BlockType[] blockTypeArray = new BlockType[MAX_BLOCKS * MAX_META];
 	
 	public BlockColours() {
 		Arrays.fill(this.bcArray, 0);

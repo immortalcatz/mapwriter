@@ -69,7 +69,7 @@ public class MwForge {
         if (event.phase == TickEvent.Phase.START){
         	// run the cleanup code when Mw is loaded and the player becomes null.
         	// a bit hacky, but simpler than checking if the connection has closed.
-            if ((Mw.instance.ready) && (Minecraft.getMinecraft().thePlayer == null)) {
+            if ((Mw.instance.initialized) && (Minecraft.getMinecraft().thePlayer == null)) {
                 Mw.instance.close();
             }
         }

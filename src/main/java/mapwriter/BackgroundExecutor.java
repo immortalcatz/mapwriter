@@ -1,9 +1,10 @@
 package mapwriter;
 
 import java.util.LinkedList;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -45,17 +46,21 @@ import mapwriter.tasks.Task;
  */
 public class BackgroundExecutor {
 
-  private ExecutorService executor;
+  private ScheduledExecutorService executor;
   private LinkedList<Task> taskQueue;
   public boolean closed = false;
 
   public BackgroundExecutor() {
-    this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
+    this.executor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
     this.taskQueue = new LinkedList<Task>();
   }
 
+  public ScheduledFuture addScheduledTask(final Task task, final long delayMS) {
+    return this.executor.scheduleAtFixedRate(task, 0, delayMS, TimeUnit.MILLISECONDS);
+  }
+
   // add a task to the queue
-  public boolean addTask(Task task) {
+  public boolean addTask(final Task task) {
     if (!this.closed) {
       Future<?> future = this.executor.submit(task);
       task.setFuture(future);
@@ -110,8 +115,9 @@ public class BackgroundExecutor {
       // process remaining tasks
       this.processRemainingTasks(50, 5);
       // should already be terminated, but just in case...
-      error = !this.executor.awaitTermination(10L, TimeUnit.SECONDS);
-      error = false;
+      if (this.executor.awaitTermination(10L, TimeUnit.SECONDS) == false) {
+        this.executor.shutdownNow();
+      }
     } catch (InterruptedException e) {
       MwUtil.log("error: IO task was interrupted during shutdown");
       e.printStackTrace();

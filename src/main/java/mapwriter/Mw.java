@@ -114,9 +114,9 @@ public class Mw {
 
   // flags and counters
   private boolean onPlayerDeathAlreadyFired = false;
-  public boolean ready = false;
+  public boolean initialized = false;
   public boolean multiplayer = false;
-  public int tickCounter = 0;
+  public long tickCounter = 0;
 
   // list of available dimensions
   public List<Integer> dimensionList = new ArrayList<Integer>();
@@ -154,7 +154,7 @@ public class Mw {
   public static Mw instance;
 
   public Mw(MwConfig config) {
-		// client only initialization
+    // client only initialization
     // oops, no idea why I was using a ModLoader method to get the Minecraft instance before
     this.mc = Minecraft.getMinecraft();
 
@@ -165,7 +165,7 @@ public class Mw {
     this.saveDir = new File(this.mc.mcDataDir, "saves");
     this.configDir = new File(this.mc.mcDataDir, "config");
 
-    this.ready = false;
+    this.initialized = false;
 
     RegionManager.logger = MwForge.logger;
 
@@ -182,17 +182,17 @@ public class Mw {
       }
 
     } else {
-			// cannot use this.mc.theWorld.getWorldInfo().getWorldName() as it
+      // cannot use this.mc.theWorld.getWorldInfo().getWorldName() as it
       // is set statically to "MpServer".
       IntegratedServer server = this.mc.getIntegratedServer();
       result = (server != null) ? server.getFolderName() : "sp_world";
     }
 
-		// strip invalid characters from the server name so that it
+    // strip invalid characters from the server name so that it
     // can't be something malicious like '..\..\..\windows\'
     result = MwUtil.mungeString(result);
 
-		// if something went wrong make sure the name is not blank
+    // if something went wrong make sure the name is not blank
     // (causes crash on start up due to empty configuration section)
     if (result == "") {
       result = "default";
@@ -217,7 +217,7 @@ public class Mw {
     this.regionFileOutputEnabledSP = this.config.getOrSetBoolean(catOptions, "regionFileOutputEnabledSP", this.regionFileOutputEnabledSP);
     this.regionFileOutputEnabledMP = this.config.getOrSetBoolean(catOptions, "regionFileOutputEnabledMP", this.regionFileOutputEnabledMP);
     this.backgroundTextureMode = this.config.getOrSetInt(catOptions, "backgroundTextureMode", this.backgroundTextureMode, 0, 1);
-		//this.lightingEnabled = this.config.getOrSetBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
+    //this.lightingEnabled = this.config.getOrSetBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
 
     this.maxZoom = this.config.getOrSetInt(catOptions, "zoomOutLevels", this.maxZoom, 1, 256);
     this.minZoom = -this.config.getOrSetInt(catOptions, "zoomInLevels", -this.minZoom, 1, 256);
@@ -249,7 +249,7 @@ public class Mw {
     this.config.setInt(catOptions, "chunksPerTick", this.chunksPerTick);
     this.config.setBoolean(catOptions, "undergroundMode", this.undergroundMode);
     this.config.setInt(catOptions, "backgroundTextureMode", this.backgroundTextureMode);
-		//this.config.setBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
+    //this.config.setBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
 
     this.config.save();
   }
@@ -273,15 +273,15 @@ public class Mw {
       MwUtil.log("setting map texture size to = %d", newTextureSize);
 
       this.textureSize = newTextureSize;
-      if (this.ready) {
-				// if we are already up and running need to close and reinitialize the map texture and
+      if (this.initialized) {
+        // if we are already up and running need to close and reinitialize the map texture and
         // region manager.
         this.reloadMapTexture();
       }
     }
   }
 
-	// update the saved player position and orientation
+  // update the saved player position and orientation
   // called every tick
   public void updatePlayer() {
     // get player pos
@@ -292,12 +292,12 @@ public class Mw {
     this.playerYInt = (int) Math.floor(this.playerY);
     this.playerZInt = (int) Math.floor(this.playerZ);
 
-		// rotationYaw of 0 points due north, we want it to point due east instead
+    // rotationYaw of 0 points due north, we want it to point due east instead
     // so add pi/2 radians (90 degrees)
     this.playerHeading = Math.toRadians(this.mc.thePlayer.rotationYaw) + (Math.PI / 2.0D);
     this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180;
 
-		// set by onWorldLoad
+    // set by onWorldLoad
     //this.playerDimension = this.mc.theWorld.provider.dimensionId;
   }
 
@@ -441,15 +441,10 @@ public class Mw {
     this.serverPort = port;
   }
 
-	////////////////////////////////
+  ////////////////////////////////
   // Initialization and Cleanup
   ////////////////////////////////
   public void load() {
-
-    if (this.ready) {
-      return;
-    }
-
     if ((this.mc.theWorld == null) || (this.mc.thePlayer == null)) {
       MwUtil.log("Mw.load: world or player is null, cannot load yet");
       return;
@@ -495,7 +490,7 @@ public class Mw {
     this.tickCounter = 0;
     this.onPlayerDeathAlreadyFired = false;
 
-		//this.multiplayer = !this.mc.isIntegratedServerRunning();
+    //this.multiplayer = !this.mc.isIntegratedServerRunning();
     // marker manager only depends on the config being loaded
     this.markerManager = new MarkerManager(this.worldConfig, catMarkers);
     this.markerManager.load();
@@ -517,9 +512,9 @@ public class Mw {
 
     this.chunkManager = new ChunkManager(this);
 
-    this.ready = true;
+    this.initialized = true;
 
-		//if (!zoomLevelsExist) {
+    //if (!zoomLevelsExist) {
     //printBoth("recreating zoom levels");
     //this.regionManager.recreateAllZoomLevels();
     //}
@@ -529,13 +524,13 @@ public class Mw {
 
     MwUtil.log("Mw.close: closing...");
 
-    if (this.ready) {
-      this.ready = false;
+    if (this.initialized) {
+      this.initialized = false;
 
       this.chunkManager.close();
       this.chunkManager = null;
 
-			// close all loaded regions, saving modified images.
+      // close all loaded regions, saving modified images.
       // this will create extra tasks that need to be completed.
       this.executor.addTask(new CloseRegionManagerTask(this.regionManager));
       this.regionManager = null;
@@ -567,32 +562,35 @@ public class Mw {
     }
   }
 
-	////////////////////////////////
+  ////////////////////////////////
   // Event handlers
   ////////////////////////////////
   public void onWorldLoad(World world) {
-		//MwUtil.log("onWorldLoad: %s, name %s, dimension %d",
+    //MwUtil.log("onWorldLoad: %s, name %s, dimension %d",
     //		world,
     //		world.getWorldInfo().getWorldName(),
     //		world.provider.dimensionId);
 
     this.playerDimension = world.provider.dimensionId;
-    if (this.ready) {
+    if (this.initialized) {
       this.addDimension(this.playerDimension);
       this.miniMap.view.setDimension(this.playerDimension);
     }
   }
 
   public void onWorldUnload(World world) {
-		//MwUtil.log("onWorldUnload: %s, name %s, dimension %d",
+    //MwUtil.log("onWorldUnload: %s, name %s, dimension %d",
     //		world,
     //		world.getWorldInfo().getWorldName(),
     //		world.provider.dimensionId);
   }
 
   public void onTick() {
-    this.load();
-    if (this.ready && (this.mc.thePlayer != null)) {
+    if (this.initialized == false) {
+      this.load();
+    }
+
+    if (this.mc.thePlayer != null) {
 
       this.updatePlayer();
 
@@ -600,7 +598,7 @@ public class Mw {
         this.undergroundMapTexture.update();
       }
 
-			// check if the game over screen is being displayed and if so 
+      // check if the game over screen is being displayed and if so 
       // (thanks to Chrixian for this method of checking when the player is dead)
       if (this.mc.currentScreen instanceof GuiGameOver) {
         if (!this.onPlayerDeathAlreadyFired) {
@@ -626,9 +624,9 @@ public class Mw {
       // update GL texture of mapTexture if updated
       this.mapTexture.processTextureUpdates();
 
-			// let the renderEngine know we have changed the bound texture.
+      // let the renderEngine know we have changed the bound texture.
       //this.mc.renderEngine.resetBoundTexture();
-	    	//if (this.tickCounter % 100 == 0) {
+      //if (this.tickCounter % 100 == 0) {
       //	MwUtil.log("tick %d", this.tickCounter);
       //}
       this.playerTrail.onTick();
@@ -639,32 +637,30 @@ public class Mw {
 
   // add chunk to the set of loaded chunks
   public void onChunkLoad(Chunk chunk) {
-    this.load();
+    if (this.initialized == false) {
+      this.load();
+    }
     if ((chunk != null) && (chunk.worldObj instanceof net.minecraft.client.multiplayer.WorldClient)) {
-      if (this.ready) {
-        this.chunkManager.addChunk(chunk);
-      } else {
-        MwUtil.logInfo("missed chunk (%d, %d)", chunk.xPosition, chunk.zPosition);
-      }
+      this.chunkManager.addChunk(chunk);
     }
   }
 
-	// remove chunk from the set of loaded chunks.
+  // remove chunk from the set of loaded chunks.
   // convert to mwchunk and write chunk to region file if in multiplayer.
   public void onChunkUnload(Chunk chunk) {
-    if (this.ready && (chunk != null) && (chunk.worldObj instanceof net.minecraft.client.multiplayer.WorldClient)) {
+    if (this.initialized && (chunk != null) && (chunk.worldObj instanceof net.minecraft.client.multiplayer.WorldClient)) {
       this.chunkManager.removeChunk(chunk);
     }
   }
 
-	// from onTick when mc.currentScreen is an instance of GuiGameOver
+  // from onTick when mc.currentScreen is an instance of GuiGameOver
   // it's the only option to detect death client side
   public void onPlayerDeath() {
-    if (this.ready && (this.maxDeathMarkers > 0)) {
+    if (this.initialized && (this.maxDeathMarkers > 0)) {
       this.updatePlayer();
       int deleteCount = this.markerManager.countMarkersInGroup("playerDeaths") - this.maxDeathMarkers + 1;
       for (int i = 0; i < deleteCount; i++) {
-				// delete the first marker found in the group "playerDeaths".
+        // delete the first marker found in the group "playerDeaths".
         // as new markers are only ever appended to the marker list this will delete the
         // earliest death marker added.
         this.markerManager.delMarker(null, "playerDeaths");
@@ -677,8 +673,8 @@ public class Mw {
 
   public void onKeyDown(KeyBinding kb) {
     // make sure not in GUI element (e.g. chat box)
-    if ((this.mc.currentScreen == null) && (this.ready)) {
-			//Mw.log("client tick: %s key pressed", kb.keyDescription);
+    if ((this.mc.currentScreen == null) && (this.initialized)) {
+      //Mw.log("client tick: %s key pressed", kb.keyDescription);
 
       if (kb == MwKeyHandler.keyMapMode) {
         // map mode toggle
