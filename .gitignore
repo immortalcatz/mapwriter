@@ -10,3 +10,6 @@ runtime
 .project
 .settings
 bin
+.nb-gradle
+.nb-gradle-properties
+eclipse
