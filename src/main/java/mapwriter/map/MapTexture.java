@@ -3,9 +3,7 @@ package mapwriter.map;
 import java.util.ArrayList;
 import java.util.List;
 
-import mapwriter.BackgroundExecutor;
 import mapwriter.Texture;
-import mapwriter.region.Region;
 import mapwriter.region.RegionManager;
 
 import org.lwjgl.opengl.GL11;
@@ -18,7 +16,7 @@ public class MapTexture extends Texture {
 	private MapViewRequest loadedView = null;
 	private MapViewRequest requestedView = null;
 	
-	private Region[] regionArray;
+	private final Region[] regionArray;
 	
 	// accessed from both render and background thread.
 	// make sure all methods using it are synchronized.

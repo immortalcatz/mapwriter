@@ -14,18 +14,18 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 public class MapRenderer {
-	private Mw mw;
-	private MapMode mapMode;
-	private MapView mapView;
+	private final Mw mw;
+	private final MapMode mapMode;
+	private final MapView mapView;
 	// accessed by the MwGui to check whether the mouse cursor is near the
 	// player arrow on the rendered map
 	public Point.Double playerArrowScreenPos = new Point.Double(0, 0);
 	 
-	private ResourceLocation backgroundTexture = new ResourceLocation("mapwriter", "textures/map/background.png");
-	private ResourceLocation roundMapTexture = new ResourceLocation("mapwriter", "textures/map/border_round.png");
-	private ResourceLocation squareMapTexture = new ResourceLocation("mapwriter", "textures/map/border_square.png");
-	private ResourceLocation playerArrowTexture = new ResourceLocation("mapwriter", "textures/map/arrow_player.png");
-	private ResourceLocation northArrowTexture = new ResourceLocation("mapwriter", "textures/map/arrow_north.png");
+	private final ResourceLocation backgroundTexture = new ResourceLocation("mapwriter", "textures/map/background.png");
+	private final ResourceLocation roundMapTexture = new ResourceLocation("mapwriter", "textures/map/border_round.png");
+	private final ResourceLocation squareMapTexture = new ResourceLocation("mapwriter", "textures/map/border_square.png");
+	private final ResourceLocation playerArrowTexture = new ResourceLocation("mapwriter", "textures/map/arrow_player.png");
+	private final ResourceLocation northArrowTexture = new ResourceLocation("mapwriter", "textures/map/arrow_north.png");
 	
 	public MapRenderer(Mw mw, MapMode mapMode, MapView mapView) {
 		this.mw = mw;

@@ -1,15 +1,13 @@
 package mapwriter;
 
+import cpw.mods.fml.common.FMLLog;
 import mapwriter.forge.MwConfig;
-import mapwriter.forge.MwForge;
 import mapwriter.forge.MwKeyHandler;
 import mapwriter.gui.MwGui;
 import mapwriter.gui.MwGuiMarkerDialog;
 import mapwriter.map.*;
 import mapwriter.overlay.OverlaySlime;
 import mapwriter.region.BlockColours;
-import mapwriter.region.RegionManager;
-import mapwriter.tasks.CloseRegionManagerTask;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.client.settings.KeyBinding;
@@ -21,6 +19,11 @@ import net.minecraft.world.chunk.Chunk;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import mapwriter.mapgen.RegionManager;
+import mapwriter.util.PriorityThreadFactory;
 
 /*
 
@@ -71,6 +74,8 @@ import java.util.List;
 	
  */
 public class Mw {
+
+  public static ScheduledExecutorService backgroundExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
 
   public Minecraft mc = null;
 
@@ -143,7 +148,6 @@ public class Mw {
   // instances of components
   public MapTexture mapTexture = null;
   public UndergroundTexture undergroundMapTexture = null;
-  public BackgroundExecutor executor = null;
   public MiniMap miniMap = null;
   public MarkerManager markerManager = null;
   public BlockColours blockColours = null;
@@ -153,7 +157,7 @@ public class Mw {
 
   public static Mw instance;
 
-  public Mw(MwConfig config) {
+  public Mw(final MwConfig config) {
     // client only initialization
     // oops, no idea why I was using a ModLoader method to get the Minecraft instance before
     this.mc = Minecraft.getMinecraft();
@@ -166,9 +170,6 @@ public class Mw {
     this.configDir = new File(this.mc.mcDataDir, "config");
 
     this.initialized = false;
-
-    RegionManager.logger = MwForge.logger;
-
     instance = this;
   }
 
@@ -402,17 +403,28 @@ public class Mw {
     this.blockColours = bc;
   }
 
+  protected void saveAllRegions() {
+    if (this.regionManager != null) {
+      final RegionManager currentRegionManager = this.regionManager;
+      backgroundExecutor.execute(new Runnable() {
+
+        @Override
+        public void run() {
+          currentRegionManager.saveAll();
+        }
+      });
+    }
+  }
+
   public void reloadMapTexture() {
-    this.executor.addTask(new CloseRegionManagerTask(this.regionManager));
-    this.executor.close();
+    saveAllRegions();
     MapTexture oldMapTexture = this.mapTexture;
     MapTexture newMapTexture = new MapTexture(this.textureSize, this.linearTextureScalingEnabled);
     this.mapTexture = newMapTexture;
     if (oldMapTexture != null) {
       oldMapTexture.close();
     }
-    this.executor = new BackgroundExecutor();
-    this.regionManager = new RegionManager(this.worldDir, this.imageDir, this.blockColours, this.minZoom, this.maxZoom);
+    this.regionManager = new RegionManager(this.imageDir.toString());
 
     UndergroundTexture oldTexture = this.undergroundMapTexture;
     UndergroundTexture newTexture = new UndergroundTexture(this, this.textureSize, this.linearTextureScalingEnabled);
@@ -497,15 +509,12 @@ public class Mw {
 
     this.playerTrail = new Trail(this, "player");
 
-    // executor does not depend on anything
-    this.executor = new BackgroundExecutor();
-
     // mapTexture depends on config being loaded
     this.mapTexture = new MapTexture(this.textureSize, this.linearTextureScalingEnabled);
     this.undergroundMapTexture = new UndergroundTexture(this, this.textureSize, this.linearTextureScalingEnabled);
     this.reloadBlockColours();
     // region manager depends on config, mapTexture, and block colours
-    this.regionManager = new RegionManager(this.worldDir, this.imageDir, this.blockColours, this.minZoom, this.maxZoom);
+    this.regionManager = new RegionManager(this.imageDir.toString());
     // overlay manager depends on mapTexture
     this.miniMap = new MiniMap(this);
     this.miniMap.view.setDimension(this.mc.thePlayer.dimension);
@@ -520,6 +529,18 @@ public class Mw {
     //}
   }
 
+  protected void terminateExecutor() {
+    backgroundExecutor.shutdown();
+    try {
+      if (backgroundExecutor.awaitTermination(5, TimeUnit.SECONDS) == false) {
+        final List<Runnable> remainingTasks = backgroundExecutor.shutdownNow();
+        FMLLog.bigWarning("Unable to terminate remaining " + remainingTasks.size() + " tasks. Data may be lost!");
+      }
+    } catch (InterruptedException e) {
+      // whatever, do it yourself JVM!
+    }
+  }
+
   public void close() {
 
     MwUtil.log("Mw.close: closing...");
@@ -530,16 +551,10 @@ public class Mw {
       this.chunkManager.close();
       this.chunkManager = null;
 
-      // close all loaded regions, saving modified images.
-      // this will create extra tasks that need to be completed.
-      this.executor.addTask(new CloseRegionManagerTask(this.regionManager));
+      saveAllRegions();
       this.regionManager = null;
 
-      MwUtil.log("waiting for %d tasks to finish...", this.executor.tasksRemaining());
-      if (this.executor.close()) {
-        MwUtil.log("error: timeout waiting for tasks to finish");
-      }
-      MwUtil.log("done");
+      terminateExecutor();
 
       this.playerTrail.close();
 
@@ -611,12 +626,6 @@ public class Mw {
         // if in game (no gui screen) center the minimap on the player and render it.
         this.miniMap.view.setViewCentreScaled(this.playerX, this.playerZ, this.playerDimension);
         this.miniMap.drawCurrentMap();
-      }
-
-      // process background tasks
-      int maxTasks = 50;
-      while (!this.executor.processTaskQueue() && (maxTasks > 0)) {
-        maxTasks--;
       }
 
       this.chunkManager.onTick();
