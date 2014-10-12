@@ -4,7 +4,6 @@ package mapwriter.mapgen;
 
 import cpw.mods.fml.common.FMLLog;
 import java.util.concurrent.ConcurrentHashMap;
-import mapwriter.Render;
 import mapwriter.Texture;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -41,8 +40,9 @@ public class ColorConvert {
       final int terrainTextureId = Minecraft.getMinecraft().renderEngine.getTexture(TextureMap.locationBlocksTexture).getGlTextureId();
       if (terrainTextureId != 0) {
         terrainTexture = new Texture(terrainTextureId);
+        terrainTexture.fetchTextureData();
       } else {
-        FMLLog.warning("Unable to get texture data");
+        FMLLog.warning("Unable to get Minecraft terrain texture.");
       }
     }
     return terrainTexture;
@@ -65,13 +65,13 @@ public class ColorConvert {
   public static int averageColor(final IIcon icon) {
     final Texture textureTerrain = getTerrainTexture();
     if (textureTerrain != null) {
-      final int iconX = (int) Math.round(((float) terrainTexture.w) * Math.min(icon.getMinU(), icon.getMaxU()));
-      final int iconY = (int) Math.round(((float) terrainTexture.h) * Math.min(icon.getMinV(), icon.getMaxV()));
-      final int iconWidth = (int) Math.round(((float) terrainTexture.w) * Math.abs(icon.getMaxU() - icon.getMinU()));
-      final int iconHeight = (int) Math.round(((float) terrainTexture.h) * Math.abs(icon.getMaxV() - icon.getMinV()));
+      final int iconX = (int) Math.round(((float) terrainTexture.width) * Math.min(icon.getMinU(), icon.getMaxU()));
+      final int iconY = (int) Math.round(((float) terrainTexture.height) * Math.min(icon.getMinV(), icon.getMaxV()));
+      final int iconWidth = (int) Math.round(((float) terrainTexture.width) * Math.abs(icon.getMaxU() - icon.getMinU()));
+      final int iconHeight = (int) Math.round(((float) terrainTexture.height) * Math.abs(icon.getMaxV() - icon.getMinV()));
 
       final int[] pixels = new int[iconWidth * iconHeight];
-      terrainTexture.getRGB(iconX, iconY, iconWidth, iconHeight, pixels, 0, iconWidth);
+      terrainTexture.getRGB(iconX, iconY, iconWidth, iconHeight, pixels, 0);
 
       return calculateAverageColor(pixels);
     } else {

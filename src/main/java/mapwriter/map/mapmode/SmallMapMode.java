@@ -4,7 +4,7 @@ import mapwriter.forge.MwConfig;
 
 public class SmallMapMode extends MapMode {
 	public SmallMapMode(MwConfig config) {
-		super(config, "smallMap");
+		super("smallMap");
 		
 		this.heightPercent = 30;
 		this.marginTop = 10;

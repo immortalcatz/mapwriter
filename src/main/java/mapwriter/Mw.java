@@ -6,7 +6,6 @@ import mapwriter.forge.MwKeyHandler;
 import mapwriter.gui.MwGui;
 import mapwriter.gui.MwGuiMarkerDialog;
 import mapwriter.map.*;
-import mapwriter.overlay.OverlaySlime;
 import mapwriter.region.BlockColours;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGameOver;
@@ -22,60 +21,13 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import mapwriter.mapgen.ChunkManager;
 import mapwriter.mapgen.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
 
-/*
-
- data transfers
- ---------------
- chunk image (16x16 int[]) -> texture (512x512 GL texture)	| every chunk update
- region file png -> texture (512x512 GL texture)				| on region load (slow, disk access)
- texture (512x512 GL texture) -> region file png				| on region unload (slow, disk access)
- chunk (Chunk object) -> anvil save file						| on chunk unload, separate thread handled by minecraft
-
- background thread
- ------------------
- performs all data transfers except Chunk->Anvil, which is handled by ThreadedFileIOBase in minecraft.
- regions created in main thread when necessary, but filled from the background thread.
-
- initialization
- --------------
- init()
- Called once only.
- - registers event and key handlers
- - loads configuration
- - inits marker manager
- - inits commands
- - inits chunkQueue
-
- onClientLoggedIn()
- Called upon entry to each world.
- - inits executor
- - inits overlay
- - inits anvil save handler
- - inits regionMap
-
- onConnectionClosed()
- Called on every exit from world.
- - closes chunkLoader
- - closes regionMap
- - closes overlay
- - saves markermanager
- - saves config
- - closes executor
- - flush chunkQueue
-
- Every hook and event handler should be enclosed in an 'if (this.ready)' statement to ensure that all
- components are initialised.
- One exception is the fillChunk handler which adds chunks to the chunkQueue so that they can be processed
- after initialization. This is so that no chunks are skipped if the chunks are loaded before the player is
- logged in.
-	
- */
 public class Mw {
 
-  public static ScheduledExecutorService backgroundExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
+  public static final ScheduledExecutorService backgroundExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
 
   public Minecraft mc = null;
 
@@ -85,7 +37,6 @@ public class Mw {
   private int serverPort = 0;
 
   // configuration files (global and world specific)
-  public MwConfig config;
   public MwConfig worldConfig = null;
 
   // directories
@@ -94,29 +45,7 @@ public class Mw {
   public File worldDir = null;
   public File imageDir = null;
 
-  // configuration options
-  public boolean linearTextureScalingEnabled = true;
-  public int coordsMode = 0;
-  public boolean undergroundMode = false;
-  public boolean teleportEnabled = true;
-  public String teleportCommand = "tp";
-  public int defaultTeleportHeight = 80;
-  public int maxZoom = 5;
-  public int minZoom = -5;
-  public boolean useSavedBlockColours = false;
-  public int maxChunkSaveDistSq = 128 * 128;
-  public boolean mapPixelSnapEnabled = true;
-  public int textureSize = 2048;
-  public int configTextureSize = 2048;
-  public int maxDeathMarkers = 3;
-  public int chunksPerTick = 5;
-  public boolean portNumberInWorldNameEnabled = true;
-  public String saveDirOverride = "";
-  public boolean regionFileOutputEnabledSP = true;
-  public boolean regionFileOutputEnabledMP = true;
-  public int backgroundTextureMode = 0;
 	//public boolean lightingEnabled = false;
-
   // flags and counters
   private boolean onPlayerDeathAlreadyFired = false;
   public boolean initialized = false;
@@ -146,42 +75,37 @@ public class Mw {
   public final static String blockColourOverridesFileName = "MapWriterBlockColourOverrides.txt";
 
   // instances of components
-  public MapTexture mapTexture = null;
-  public UndergroundTexture undergroundMapTexture = null;
-  public MiniMap miniMap = null;
-  public MarkerManager markerManager = null;
-  public BlockColours blockColours = null;
-  public RegionManager regionManager = null;
-  public ChunkManager chunkManager = null;
-  public Trail playerTrail = null;
+  public MapTexture mapTexture;
+  public UndergroundTexture undergroundMapTexture;
+  public MiniMap miniMap;
+  public MarkerManager markerManager;
+  public BlockColours blockColours;
+  public RegionManager regionManager;
+  public ChunkManager chunkManager = new ChunkManager();
+  public Trail playerTrail;
 
-  public static Mw instance;
+  public static final Mw instance = new Mw();
 
-  public Mw(final MwConfig config) {
+  public Mw() {
     // client only initialization
     // oops, no idea why I was using a ModLoader method to get the Minecraft instance before
     this.mc = Minecraft.getMinecraft();
-
-    // load config
-    this.config = config;
 
     // create base save directory
     this.saveDir = new File(this.mc.mcDataDir, "saves");
     this.configDir = new File(this.mc.mcDataDir, "config");
 
     this.initialized = false;
-    instance = this;
   }
 
   public String getWorldName() {
     String result;
     if (this.multiplayer) {
-      if (this.portNumberInWorldNameEnabled) {
+      if (Config.instance.portNumberInWorldNameEnabled) {
         result = String.format("%s_%d", this.serverName, this.serverPort);
       } else {
         result = String.format("%s", this.serverName);
       }
-
     } else {
       // cannot use this.mc.theWorld.getWorldInfo().getWorldName() as it
       // is set statically to "MpServer".
@@ -195,36 +119,10 @@ public class Mw {
 
     // if something went wrong make sure the name is not blank
     // (causes crash on start up due to empty configuration section)
-    if (result == "") {
+    if ("".equals(result)) {
       result = "default";
     }
     return result;
-  }
-
-  public void loadConfig() {
-    this.config.load();
-    this.linearTextureScalingEnabled = this.config.getOrSetBoolean(catOptions, "linearTextureScaling", this.linearTextureScalingEnabled);
-    this.useSavedBlockColours = this.config.getOrSetBoolean(catOptions, "useSavedBlockColours", this.useSavedBlockColours);
-    this.teleportEnabled = this.config.getOrSetBoolean(catOptions, "teleportEnabled", this.teleportEnabled);
-    this.teleportCommand = this.config.get(catOptions, "teleportCommand", this.teleportCommand).getString();
-    this.coordsMode = this.config.getOrSetInt(catOptions, "coordsMode", this.coordsMode, 0, 2);
-    this.maxChunkSaveDistSq = this.config.getOrSetInt(catOptions, "maxChunkSaveDistSq", this.maxChunkSaveDistSq, 1, 256 * 256);
-    this.mapPixelSnapEnabled = this.config.getOrSetBoolean(catOptions, "mapPixelSnapEnabled", this.mapPixelSnapEnabled);
-    this.maxDeathMarkers = this.config.getOrSetInt(catOptions, "maxDeathMarkers", this.maxDeathMarkers, 0, 1000);
-    this.chunksPerTick = this.config.getOrSetInt(catOptions, "chunksPerTick", this.chunksPerTick, 1, 500);
-    this.saveDirOverride = this.config.get(catOptions, "saveDirOverride", this.saveDirOverride).getString();
-    this.portNumberInWorldNameEnabled = config.getOrSetBoolean(catOptions, "portNumberInWorldNameEnabled", this.portNumberInWorldNameEnabled);
-    this.undergroundMode = this.config.getOrSetBoolean(catOptions, "undergroundMode", this.undergroundMode);
-    this.regionFileOutputEnabledSP = this.config.getOrSetBoolean(catOptions, "regionFileOutputEnabledSP", this.regionFileOutputEnabledSP);
-    this.regionFileOutputEnabledMP = this.config.getOrSetBoolean(catOptions, "regionFileOutputEnabledMP", this.regionFileOutputEnabledMP);
-    this.backgroundTextureMode = this.config.getOrSetInt(catOptions, "backgroundTextureMode", this.backgroundTextureMode, 0, 1);
-    //this.lightingEnabled = this.config.getOrSetBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
-
-    this.maxZoom = this.config.getOrSetInt(catOptions, "zoomOutLevels", this.maxZoom, 1, 256);
-    this.minZoom = -this.config.getOrSetInt(catOptions, "zoomInLevels", -this.minZoom, 1, 256);
-
-    this.configTextureSize = this.config.getOrSetInt(catOptions, "textureSize", this.configTextureSize, 1024, 8192);
-    this.setTextureSize();
   }
 
   public void loadWorldConfig() {
@@ -239,46 +137,28 @@ public class Mw {
     this.cleanDimensionList();
   }
 
-  public void saveConfig() {
-    this.config.setBoolean(catOptions, "linearTextureScaling", this.linearTextureScalingEnabled);
-    this.config.setBoolean(catOptions, "useSavedBlockColours", this.useSavedBlockColours);
-    this.config.setInt(catOptions, "textureSize", this.configTextureSize);
-    this.config.setInt(catOptions, "coordsMode", this.coordsMode);
-    this.config.setInt(catOptions, "maxChunkSaveDistSq", this.maxChunkSaveDistSq);
-    this.config.setBoolean(catOptions, "mapPixelSnapEnabled", this.mapPixelSnapEnabled);
-    this.config.setInt(catOptions, "maxDeathMarkers", this.maxDeathMarkers);
-    this.config.setInt(catOptions, "chunksPerTick", this.chunksPerTick);
-    this.config.setBoolean(catOptions, "undergroundMode", this.undergroundMode);
-    this.config.setInt(catOptions, "backgroundTextureMode", this.backgroundTextureMode);
-    //this.config.setBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
-
-    this.config.save();
-  }
-
   public void saveWorldConfig() {
     this.worldConfig.setIntList(catWorld, "dimensionList", this.dimensionList);
     this.worldConfig.save();
   }
 
   public void setTextureSize() {
-    if (this.configTextureSize != this.textureSize) {
-      int maxTextureSize = Render.getMaxTextureSize();
-      int newTextureSize = 1024;
-      while ((newTextureSize <= maxTextureSize) && (newTextureSize <= this.configTextureSize)) {
-        newTextureSize *= 2;
-      }
-      newTextureSize /= 2;
+    final int maxTextureSize = Render.getMaxTextureSize();
+    int newTextureSize = 1024;
+    while ((newTextureSize <= maxTextureSize) && (newTextureSize <= Config.instance.configTextureSize)) {
+      newTextureSize <<= 1;
+    }
+    newTextureSize >>= 1;
 
-      MwUtil.log("GL reported max texture size = %d", maxTextureSize);
-      MwUtil.log("texture size from config = %d", this.configTextureSize);
-      MwUtil.log("setting map texture size to = %d", newTextureSize);
+    MwUtil.log("GL reported max texture size = %d", maxTextureSize);
+    MwUtil.log("texture size from config = %d", Config.instance.configTextureSize);
+    MwUtil.log("setting map texture size to = %d", newTextureSize);
 
-      this.textureSize = newTextureSize;
-      if (this.initialized) {
+    Config.instance.configTextureSize = newTextureSize;
+    if (this.initialized) {
         // if we are already up and running need to close and reinitialize the map texture and
-        // region manager.
-        this.reloadMapTexture();
-      }
+      // region manager.
+      this.reloadMapTexture();
     }
   }
 
@@ -325,15 +205,15 @@ public class Mw {
 
   // cheap and lazy way to teleport...
   public void teleportTo(int x, int y, int z) {
-    if (this.teleportEnabled) {
-      this.mc.thePlayer.sendChatMessage(String.format("/%s %d %d %d", this.teleportCommand, x, y, z));
+    if (Config.instance.teleportEnabled) {
+      this.mc.thePlayer.sendChatMessage(String.format("/%s %d %d %d", Config.instance.teleportCommand, x, y, z));
     } else {
       MwUtil.printBoth("teleportation is disabled in mapwriter.cfg");
     }
   }
 
   public void warpTo(String name) {
-    if (this.teleportEnabled) {
+    if (Config.instance.teleportEnabled) {
       //MwUtil.printBoth(String.format("warping to %s", name));
       this.mc.thePlayer.sendChatMessage(String.format("/warp %s", name));
     } else {
@@ -342,7 +222,7 @@ public class Mw {
   }
 
   public void teleportToMapPos(MapView mapView, int x, int y, int z) {
-    if (!this.teleportCommand.equals("warp")) {
+    if (!Config.instance.teleportCommand.equals("warp")) {
       double scale = mapView.getDimensionScaling(this.playerDimension);
       this.teleportTo((int) (x / scale), y, (int) (z / scale));
     } else {
@@ -351,56 +231,13 @@ public class Mw {
   }
 
   public void teleportToMarker(Marker marker) {
-    if (this.teleportCommand.equals("warp")) {
+    if (Config.instance.teleportCommand.equals("warp")) {
       this.warpTo(marker.name);
     } else if (marker.dimension == this.playerDimension) {
       this.teleportTo(marker.x, marker.y, marker.z);
     } else {
       MwUtil.printBoth("cannot teleport to marker in different dimension");
     }
-  }
-
-  public void loadBlockColourOverrides(BlockColours bc) {
-    File f = new File(this.configDir, blockColourOverridesFileName);
-    if (f.isFile()) {
-      MwUtil.logInfo("loading block colour overrides file %s", f);
-      bc.loadFromFile(f);
-    } else {
-      MwUtil.logInfo("recreating block colour overrides file %s", f);
-      BlockColours.writeOverridesFile(f);
-      if (f.isFile()) {
-        bc.loadFromFile(f);
-      } else {
-        MwUtil.logError("could not load block colour overrides from file %s", f);
-      }
-    }
-  }
-
-  public void saveBlockColours(BlockColours bc) {
-    File f = new File(this.configDir, blockColourSaveFileName);
-    MwUtil.logInfo("saving block colours to '%s'", f);
-    bc.saveToFile(f);
-  }
-
-  public void reloadBlockColours() {
-    BlockColours bc = new BlockColours();
-    File f = new File(this.configDir, blockColourSaveFileName);
-    if (this.useSavedBlockColours && f.isFile()) {
-      // load block colours from file
-      MwUtil.logInfo("loading block colours from %s", f);
-      bc.loadFromFile(f);
-      this.loadBlockColourOverrides(bc);
-    } else {
-      // generate block colours from current texture pack
-      MwUtil.logInfo("generating block colours");
-      // block type overrides need to be loaded before the block colours are generated
-      this.loadBlockColourOverrides(bc);
-      BlockColourGen.genBlockColours(bc);
-      // load overrides again to override block and biome colours
-      this.loadBlockColourOverrides(bc);
-      this.saveBlockColours(bc);
-    }
-    this.blockColours = bc;
   }
 
   protected void saveAllRegions() {
@@ -419,33 +256,33 @@ public class Mw {
   public void reloadMapTexture() {
     saveAllRegions();
     MapTexture oldMapTexture = this.mapTexture;
-    MapTexture newMapTexture = new MapTexture(this.textureSize, this.linearTextureScalingEnabled);
+    MapTexture newMapTexture = new MapTexture(Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
     this.mapTexture = newMapTexture;
     if (oldMapTexture != null) {
-      oldMapTexture.close();
+      oldMapTexture.dispose();
     }
     this.regionManager = new RegionManager(this.imageDir.toString());
 
     UndergroundTexture oldTexture = this.undergroundMapTexture;
-    UndergroundTexture newTexture = new UndergroundTexture(this, this.textureSize, this.linearTextureScalingEnabled);
+    UndergroundTexture newTexture = new UndergroundTexture(this, Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
     this.undergroundMapTexture = newTexture;
     if (oldTexture != null) {
-      this.undergroundMapTexture.close();
+      this.undergroundMapTexture.dispose();
     }
   }
 
   public void setCoordsMode(int mode) {
-    this.coordsMode = Math.min(Math.max(0, mode), 2);
+    Config.instance.coordsMode = Math.min(Math.max(0, mode), 2);
   }
 
   public int toggleCoords() {
-    this.setCoordsMode((this.coordsMode + 1) % 3);
-    return this.coordsMode;
+    this.setCoordsMode((Config.instance.coordsMode + 1) % 3);
+    return Config.instance.coordsMode;
   }
 
   public void toggleUndergroundMode() {
-    this.undergroundMode = !this.undergroundMode;
-    this.miniMap.view.setUndergroundMode(this.undergroundMode);
+    Config.instance.undergroundMode = !Config.instance.undergroundMode;
+    this.miniMap.view.setUndergroundMode(Config.instance.undergroundMode);
   }
 
   public void setServerDetails(String hostname, int port) {
@@ -466,26 +303,23 @@ public class Mw {
 
     IntegratedServer server = this.mc.getIntegratedServer();
     this.multiplayer = (server == null);
-
-    this.loadConfig();
-
     this.worldName = this.getWorldName();
 
     // get world and image directories
-    File saveDir = this.saveDir;
-    if (this.saveDirOverride.length() > 0) {
-      File d = new File(this.saveDirOverride);
+    File actualSaveDir = this.saveDir;
+    if (Config.instance.saveDirOverride.length() > 0) {
+      File d = new File(Config.instance.saveDirOverride);
       if (d.isDirectory()) {
-        saveDir = d;
+        actualSaveDir = d;
       } else {
-        MwUtil.log("error: no such directory %s", this.saveDirOverride);
+        MwUtil.log("error: no such directory %s", Config.instance.saveDirOverride);
       }
     }
 
     if (this.multiplayer) {
-      this.worldDir = new File(new File(saveDir, "mapwriter_mp_worlds"), this.worldName);
+      this.worldDir = new File(new File(actualSaveDir, "mapwriter_mp_worlds"), this.worldName);
     } else {
-      this.worldDir = new File(new File(saveDir, "mapwriter_sp_worlds"), this.worldName);
+      this.worldDir = new File(new File(actualSaveDir, "mapwriter_sp_worlds"), this.worldName);
     }
 
     this.loadWorldConfig();
@@ -510,16 +344,15 @@ public class Mw {
     this.playerTrail = new Trail(this, "player");
 
     // mapTexture depends on config being loaded
-    this.mapTexture = new MapTexture(this.textureSize, this.linearTextureScalingEnabled);
-    this.undergroundMapTexture = new UndergroundTexture(this, this.textureSize, this.linearTextureScalingEnabled);
-    this.reloadBlockColours();
+    this.mapTexture = new MapTexture(Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
+    this.undergroundMapTexture = new UndergroundTexture(this, Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
     // region manager depends on config, mapTexture, and block colours
     this.regionManager = new RegionManager(this.imageDir.toString());
     // overlay manager depends on mapTexture
     this.miniMap = new MiniMap(this);
     this.miniMap.view.setDimension(this.mc.thePlayer.dimension);
 
-    this.chunkManager = new ChunkManager(this);
+    this.chunkManager = new ChunkManager();
 
     this.initialized = true;
 
@@ -548,8 +381,7 @@ public class Mw {
     if (this.initialized) {
       this.initialized = false;
 
-      this.chunkManager.close();
-      this.chunkManager = null;
+      this.chunkManager.removeAll();
 
       saveAllRegions();
       this.regionManager = null;
@@ -565,22 +397,20 @@ public class Mw {
       this.miniMap.close();
       this.miniMap = null;
 
-      this.undergroundMapTexture.close();
-      this.mapTexture.close();
+      this.undergroundMapTexture.dispose();
+      this.mapTexture.dispose();
 
       this.saveWorldConfig();
-      this.saveConfig();
+      Config.instance.save();
 
       this.tickCounter = 0;
-
-      OverlaySlime.reset(); //Reset the state so the seed will be asked again when we log in
     }
   }
 
   ////////////////////////////////
   // Event handlers
   ////////////////////////////////
-  public void onWorldLoad(World world) {
+  public void onWorldLoad(final World world) {
     //MwUtil.log("onWorldLoad: %s, name %s, dimension %d",
     //		world,
     //		world.getWorldInfo().getWorldName(),
@@ -609,7 +439,7 @@ public class Mw {
 
       this.updatePlayer();
 
-      if (this.undergroundMode && ((this.tickCounter % 30) == 0)) {
+      if (Config.instance.undergroundMode && ((this.tickCounter % 30) == 0)) {
         this.undergroundMapTexture.update();
       }
 
@@ -627,8 +457,6 @@ public class Mw {
         this.miniMap.view.setViewCentreScaled(this.playerX, this.playerZ, this.playerDimension);
         this.miniMap.drawCurrentMap();
       }
-
-      this.chunkManager.onTick();
 
       // update GL texture of mapTexture if updated
       this.mapTexture.processTextureUpdates();
@@ -665,9 +493,9 @@ public class Mw {
   // from onTick when mc.currentScreen is an instance of GuiGameOver
   // it's the only option to detect death client side
   public void onPlayerDeath() {
-    if (this.initialized && (this.maxDeathMarkers > 0)) {
+    if (this.initialized && (Config.instance.maxDeathMarkers > 0)) {
       this.updatePlayer();
-      int deleteCount = this.markerManager.countMarkersInGroup("playerDeaths") - this.maxDeathMarkers + 1;
+      int deleteCount = this.markerManager.countMarkersInGroup("playerDeaths") - Config.instance.maxDeathMarkers + 1;
       for (int i = 0; i < deleteCount; i++) {
         // delete the first marker found in the group "playerDeaths".
         // as new markers are only ever appended to the marker list this will delete the
@@ -737,5 +565,9 @@ public class Mw {
         this.toggleUndergroundMode();
       }
     }
+  }
+
+  public void onWorldSave(final World world) {
+    this.saveAllRegions();
   }
 }
