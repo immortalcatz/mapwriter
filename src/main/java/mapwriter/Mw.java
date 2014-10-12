@@ -6,7 +6,7 @@ import mapwriter.forge.MwKeyHandler;
 import mapwriter.gui.MwGui;
 import mapwriter.gui.MwGuiMarkerDialog;
 import mapwriter.map.*;
-import mapwriter.region.BlockColours;
+import outdated.mapwriter.region.BlockColours;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.client.settings.KeyBinding;
@@ -45,7 +45,7 @@ public class Mw {
   public File worldDir = null;
   public File imageDir = null;
 
-	//public boolean lightingEnabled = false;
+  //public boolean lightingEnabled = false;
   // flags and counters
   private boolean onPlayerDeathAlreadyFired = false;
   public boolean initialized = false;
@@ -156,7 +156,7 @@ public class Mw {
 
     Config.instance.configTextureSize = newTextureSize;
     if (this.initialized) {
-        // if we are already up and running need to close and reinitialize the map texture and
+      // if we are already up and running need to close and reinitialize the map texture and
       // region manager.
       this.reloadMapTexture();
     }
@@ -240,21 +240,10 @@ public class Mw {
     }
   }
 
-  protected void saveAllRegions() {
-    if (this.regionManager != null) {
-      final RegionManager currentRegionManager = this.regionManager;
-      backgroundExecutor.execute(new Runnable() {
-
-        @Override
-        public void run() {
-          currentRegionManager.saveAll();
-        }
-      });
-    }
-  }
-
   public void reloadMapTexture() {
-    saveAllRegions();
+    if (this.regionManager != null) {
+      regionManager.saveAll();
+    }
     MapTexture oldMapTexture = this.mapTexture;
     MapTexture newMapTexture = new MapTexture(Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
     this.mapTexture = newMapTexture;
@@ -383,7 +372,9 @@ public class Mw {
 
       this.chunkManager.removeAll();
 
-      saveAllRegions();
+      if (this.regionManager != null) {
+        regionManager.saveAll();
+      }
       this.regionManager = null;
 
       terminateExecutor();
@@ -568,6 +559,16 @@ public class Mw {
   }
 
   public void onWorldSave(final World world) {
-    this.saveAllRegions();
+    if (this.regionManager != null) {
+      regionManager.saveAll();
+    }
+  }
+
+  public RegionManager getRegionManager(final World world) {
+    return getRegionManager(world.provider.dimensionId);
+  }
+
+  public RegionManager getRegionManager(final int dimensionID) {
+    return this.regionManager;
   }
 }

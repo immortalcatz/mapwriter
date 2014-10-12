@@ -2,14 +2,14 @@
  */
 package mapwriter.mapgen;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import mapwriter.Mw;
 import net.minecraft.world.chunk.Chunk;
 
 /**
@@ -17,59 +17,73 @@ import net.minecraft.world.chunk.Chunk;
  */
 public class RegionManager {
 
-  static int getRegionIDByChunkPosition(final int chunkX, final int chunkZ) {
-    return (((chunkX / Region.REGION_DIVISOR) & 0xFFFF) << 16) | ((chunkZ / Region.REGION_DIVISOR) & 0xFFFF);
-  }
-
-  static String getFilenameByRegionID(final int regionID) {
-    return ((regionID >> 16) & 0xFFFF) + '.' + (regionID & 0xFFFF) + '.' + Region.IMAGE_TYPE;
-  }
-
   // Class variables
-  final ConcurrentHashMap<Integer, Region> cachedRegions = new ConcurrentHashMap<Integer, Region>();
-  final ConcurrentHashMap<Integer, Region> modifiedRegions = new ConcurrentHashMap<Integer, Region>();
+  final ConcurrentHashMap<RegionID, Region> cachedRegions = new ConcurrentHashMap<RegionID, Region>();
+  final ConcurrentHashMap<RegionID, Region> modifiedRegions = new ConcurrentHashMap<RegionID, Region>();
   final String saveDir;
-  final Function<Integer, Region> regionGenerator;
-  final Consumer<Map.Entry<Integer, Region>> regionSaver;
 
   public RegionManager(final String saveDir) {
     this.saveDir = saveDir;
-
-    this.regionGenerator = new Function<Integer, Region>() {
-
-      @Override
-      public Region apply(final Integer regionID) {
-        final Path filepath = Paths.get(saveDir, getFilenameByRegionID(regionID));
-        return Region.fromFile(filepath); // this returns a previously saved region or an empty one
-      }
-    };
-
-    this.regionSaver = new Consumer<Map.Entry<Integer, Region>>() {
-
-      @Override
-      public void accept(final Map.Entry<Integer, Region> entry) {
-        entry.getValue().saveAs(Paths.get(saveDir, getFilenameByRegionID(entry.getKey())));
-      }
-    };
   }
 
-  protected Region getOrCreateRegion(final int regionID) {
+  protected Region getOrCreateRegion(final RegionID regionID) {
     return cachedRegions.computeIfAbsent(regionID, regionGenerator);
   }
 
+  public List<Region> getAllExistingRegionsInArea(final float coordLeft, final float coordTop, final float coordRight, final float coordBottom) {
+    final RegionID topLeft = RegionID.byCoordinates(coordLeft, coordTop);
+    final RegionID bottomRight = RegionID.byCoordinates(coordRight + 0.5f, coordBottom + 0.5f);
+
+    final ArrayList<Region> result = new ArrayList<Region>();
+
+    Region region;
+    for (int regionX = topLeft.regionX; regionX <= bottomRight.regionX; ++regionX) {
+      for (int regionZ = topLeft.regionZ; regionZ <= bottomRight.regionZ; ++regionZ) {
+        region = cachedRegions.get(new RegionID(regionX, regionZ));
+        if (region != null) {
+          result.add(region);
+        }
+      }
+    }
+
+    return result;
+  }
+
   public void updateChunk(final Chunk chunk, final int[] newPixels) {
-    final int regionID = getRegionIDByChunkPosition(chunk.xPosition, chunk.zPosition);
+    final RegionID regionID = RegionID.byChunk(chunk.xPosition, chunk.zPosition);
     final Region region = getOrCreateRegion(regionID);
-    region.setChunk(chunk, newPixels);
+    region.updateChunk(chunk, newPixels);
     modifiedRegions.put(regionID, region);
   }
 
   public void saveAll() {
-    final Set<Map.Entry<Integer, Region>> mapEntries = modifiedRegions.entrySet();
-    final ArrayList<Map.Entry<Integer, Region>> entries = new ArrayList<Map.Entry<Integer, Region>>(mapEntries);
-    mapEntries.removeAll(entries);
-
-    entries.forEach(regionSaver);
+    Mw.backgroundExecutor.execute(regionSaveTask);
   }
 
+  //--- Tasks ------------------------------------------------------------------
+  final Function<RegionID, Region> regionGenerator = new Function<RegionID, Region>() {
+
+    @Override
+    public Region apply(final RegionID regionID) {
+      return Region.fromFile(saveDir, regionID); // this returns a previously saved region or an empty one
+    }
+  };
+  final Consumer<Map.Entry<RegionID, Region>> regionSaver = new Consumer<Map.Entry<RegionID, Region>>() {
+
+    @Override
+    public void accept(final Map.Entry<RegionID, Region> entry) {
+      entry.getValue().save(saveDir);
+    }
+  };
+  final Runnable regionSaveTask = new Runnable() {
+
+    @Override
+    public void run() {
+      final Set<Map.Entry<RegionID, Region>> mapEntries = modifiedRegions.entrySet();
+      final ArrayList<Map.Entry<RegionID, Region>> entries = new ArrayList<Map.Entry<RegionID, Region>>(mapEntries);
+      mapEntries.removeAll(entries);
+
+      entries.forEach(regionSaver);
+    }
+  };
 }

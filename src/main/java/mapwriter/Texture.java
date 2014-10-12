@@ -1,14 +1,18 @@
 package mapwriter;
 
 import cpw.mods.fml.common.FMLLog;
+import java.awt.image.BufferedImage;
 import java.nio.IntBuffer;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+import scala.actors.threadpool.Arrays;
 
 public class Texture {
 
+  public final int size;
   public final int width;
   public final int height;
   final IntBuffer pixelBuf;
@@ -19,7 +23,8 @@ public class Texture {
   public Texture(final int width, final int height) {
     this.width = width;
     this.height = height;
-    this.pixelBuf = MwUtil.allocateDirectIntBuffer(width * height);
+    this.size = this.width * this.height;
+    this.pixelBuf = MwUtil.newDirectIntBuffer(width * height);
 
     this.id = GL11.glGenTextures();
     if (this.id > 0) {
@@ -41,7 +46,8 @@ public class Texture {
     GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.id);
     this.width = Render.getTextureWidth();
     this.height = Render.getTextureHeight();
-    this.pixelBuf = MwUtil.allocateDirectIntBuffer(this.width * this.height);
+    this.size = this.width * this.height;
+    this.pixelBuf = MwUtil.newIntBuffer(this.size);
     GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
   }
 
@@ -50,6 +56,12 @@ public class Texture {
     if (this.id > 0) {
       GL11.glDeleteTextures(this.id);
       this.id = -1;
+    }
+  }
+
+  public int[] getRGB() {
+    synchronized (this.pixelBuf) {
+      return Arrays.copyOf(this.pixelBuf.array(), this.size);
     }
   }
 
@@ -64,15 +76,28 @@ public class Texture {
     }
   }
 
+  public void setRGB(final int[] pixels) {
+    Objects.requireNonNull(pixels);
+    if (pixels.length != this.size) {
+      throw new IllegalArgumentException("Pixel size does not match. Expected " + size + " but got " + pixels.length);
+    }
+    synchronized (this.pixelBuf) {
+      requiresUpdate.set(true);
+      this.pixelBuf.clear();
+      this.pixelBuf.put(pixels);
+      this.pixelBuf.flip();
+    }
+  }
+
   // Copy a rectangular sub-region of dimensions 'w' x 'h' from the array 'pixels' to the pixel buffer.
   public void setRGB(final int x, final int y, final int width, final int height, final int[] pixels, final int offset) {
     final int bufferOffset = (y * this.width) + x;
     synchronized (this.pixelBuf) {
+      requiresUpdate.set(true);
       for (int line = 0; line < height; ++line) {
         this.pixelBuf.position(bufferOffset + (line * this.width));
         this.pixelBuf.put(pixels, offset + (line * width), width);
       }
-      requiresUpdate.set(true);
     }
   }
 
@@ -104,5 +129,13 @@ public class Texture {
       this.pixelBuf.limit(this.width * this.height);
     }
     this.unbind();
+  }
+
+  public BufferedImage asImage() {
+    final BufferedImage result = new BufferedImage(this.width, this.height, BufferedImage.TYPE_INT_ARGB);
+    synchronized (this.pixelBuf) {
+      result.setRGB(0, 0, this.width, this.height, this.pixelBuf.array(), 0, this.width);
+    }
+    return result;
   }
 }

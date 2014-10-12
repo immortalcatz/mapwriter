@@ -113,7 +113,11 @@ public class MwUtil {
     return dimDir;
   }
 
-  public static IntBuffer allocateDirectIntBuffer(int size) {
+  public static IntBuffer newIntBuffer(int size) {
+    return ByteBuffer.allocate(size * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
+  }
+
+  public static IntBuffer newDirectIntBuffer(int size) {
     return ByteBuffer.allocateDirect(size * 4).order(ByteOrder.nativeOrder()).asIntBuffer();
   }
 

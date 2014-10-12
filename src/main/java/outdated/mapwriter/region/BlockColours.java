@@ -1,4 +1,4 @@
-package mapwriter.region;
+package outdated.mapwriter.region;
 
 import java.io.File;
 import java.io.FileOutputStream;

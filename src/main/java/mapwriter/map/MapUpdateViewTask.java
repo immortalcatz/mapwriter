@@ -1,6 +1,6 @@
 package mapwriter.map;
 
-import mapwriter.region.RegionManager;
+import outdated.mapwriter.region.RegionManager;
 import mapwriter.tasks.Task;
 
 public class MapUpdateViewTask extends Task {

@@ -1,14 +1,9 @@
 package mapwriter.map;
 
 import java.awt.Point;
-import java.util.ArrayList;
 import mapwriter.Config;
-
 import mapwriter.Mw;
 import mapwriter.Render;
-import mapwriter.api.IMwChunkOverlay;
-import mapwriter.api.IMwDataProvider;
-import mapwriter.api.MwAPI;
 import mapwriter.map.mapmode.MapMode;
 import net.minecraft.util.ResourceLocation;
 
@@ -19,7 +14,7 @@ public class MapRenderer {
   private final Mw mw;
   private final MapMode mapMode;
   private final MapView mapView;
-	// accessed by the MwGui to check whether the mouse cursor is near the
+  // accessed by the MwGui to check whether the mouse cursor is near the
   // player arrow on the rendered map
   public Point.Double playerArrowScreenPos = new Point.Double(0, 0);
 
@@ -36,12 +31,11 @@ public class MapRenderer {
   }
 
   private void drawMap() {
-
     int regionZoomLevel = Math.max(0, this.mapView.getZoomLevel());
     double tSize = (double) Config.instance.textureSize;
     double zoomScale = (double) (1 << regionZoomLevel);
 
-		// if the texture UV coordinates do not line up with the texture pixels then the texture
+    // if the texture UV coordinates do not line up with the texture pixels then the texture
     // will look blurry when it is drawn to the screen.
     // to fix this we round the texture coordinates to the nearest pixel boundary.
     // this is unnecessary when zoomed in as the texture will be upscaled and look blurry
@@ -114,7 +108,7 @@ public class MapRenderer {
         Render.drawRect(this.mapMode.x, this.mapMode.y, this.mapMode.w, this.mapMode.h);
       }
 
-			// only draw surface map if the request is loaded (view requests are
+      // only draw surface map if the request is loaded (view requests are
       // loaded by the background thread)
       if (this.mw.mapTexture.isLoaded(req)) {
         this.mw.mapTexture.bind();
@@ -124,16 +118,6 @@ public class MapRenderer {
                 u, v, u + w, v + h
         );
       }
-    }
-
-    // draw ProfMobius chunk overlay
-    IMwDataProvider provider = this.drawOverlay();
-
-    // overlay onDraw event
-    if (provider != null) {
-      GL11.glPushMatrix();
-      provider.onDraw(this.mapView, this.mapMode);
-      GL11.glPopMatrix();
     }
 
     if (this.mapMode.circular) {
@@ -208,7 +192,7 @@ public class MapRenderer {
 
     GL11.glPopMatrix();
 
-		// outside of the matrix pop as theplayer arrow
+    // outside of the matrix pop as theplayer arrow
     // needs to be drawn without rotation
     this.drawPlayerArrow();
   }
@@ -240,26 +224,6 @@ public class MapRenderer {
     }
   }
 
-  private IMwDataProvider drawOverlay() {
-		// draw overlays from registered providers
-    //for (IMwDataProvider provider : MwAPI.getDataProviders())
-    IMwDataProvider provider = MwAPI.getCurrentDataProvider();
-    if (provider != null) {
-      ArrayList<IMwChunkOverlay> overlays = provider.getChunksOverlay(
-              this.mapView.getDimension(),
-              this.mapView.getX(), this.mapView.getZ(),
-              this.mapView.getMinX(), this.mapView.getMinZ(),
-              this.mapView.getMaxX(), this.mapView.getMaxZ()
-      );
-      if (overlays != null) {
-        for (IMwChunkOverlay overlay : overlays) {
-          paintChunk(this.mapMode, this.mapView, overlay);
-        }
-      }
-    }
-    return provider;
-  }
-
   public void draw() {
 
     this.mapMode.setScreenRes();
@@ -269,7 +233,7 @@ public class MapRenderer {
     GL11.glPushMatrix();
     GL11.glLoadIdentity();
 
-		// translate to center of minimap
+    // translate to center of minimap
     // z is -2000 so that it is drawn above the 3D world, but below GUI
     // elements which are typically at -3000
     GL11.glTranslated(this.mapMode.xTranslation, this.mapMode.yTranslation, -2000.0);
@@ -287,37 +251,5 @@ public class MapRenderer {
     // some shader mods seem to need depth testing re-enabled
     GL11.glEnable(GL11.GL_DEPTH_TEST);
     GL11.glPopMatrix();
-  }
-
-  private static void paintChunk(MapMode mapMode, MapView mapView, IMwChunkOverlay overlay) {
-    int chunkX = overlay.getCoordinates().x;
-    int chunkZ = overlay.getCoordinates().y;
-    float filling = overlay.getFilling();
-
-    Point.Double topCorner = mapMode.blockXZtoScreenXY(mapView, chunkX << 4, chunkZ << 4);
-    Point.Double botCorner = mapMode.blockXZtoScreenXY(mapView, (chunkX + 1) << 4, (chunkZ + 1 << 4));
-
-    topCorner.x = Math.max(mapMode.x, topCorner.x);
-    topCorner.x = Math.min(mapMode.x + mapMode.w, topCorner.x);
-    topCorner.y = Math.max(mapMode.y, topCorner.y);
-    topCorner.y = Math.min(mapMode.y + mapMode.h, topCorner.y);
-
-    botCorner.x = Math.max(mapMode.x, botCorner.x);
-    botCorner.x = Math.min(mapMode.x + mapMode.w, botCorner.x);
-    botCorner.y = Math.max(mapMode.y, botCorner.y);
-    botCorner.y = Math.min(mapMode.y + mapMode.h, botCorner.y);
-
-    double sizeX = (botCorner.x - topCorner.x) * filling;
-    double sizeY = (botCorner.y - topCorner.y) * filling;
-    double offsetX = ((botCorner.x - topCorner.x) - sizeX) / 2;
-    double offsetY = ((botCorner.y - topCorner.y) - sizeY) / 2;
-
-    if (overlay.hasBorder()) {
-      Render.setColour(overlay.getBorderColor());
-      Render.drawRectBorder(topCorner.x + 1, topCorner.y + 1, botCorner.x - topCorner.x - 1, botCorner.y - topCorner.y - 1, overlay.getBorderWidth());
-    }
-
-    Render.setColour(overlay.getColor());
-    Render.drawRect(topCorner.x + offsetX + 1, topCorner.y + offsetY + 1, sizeX - 1, sizeY - 1);
   }
 }

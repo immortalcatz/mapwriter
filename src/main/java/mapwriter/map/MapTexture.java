@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mapwriter.Texture;
-import mapwriter.region.RegionManager;
+import outdated.mapwriter.region.RegionManager;
 
 import org.lwjgl.opengl.GL11;
 

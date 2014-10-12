@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 import mapwriter.Mw;
 import mapwriter.Texture;
-import mapwriter.region.ChunkRender;
+import outdated.mapwriter.region.ChunkRender;
 import mapwriter.region.IChunk;
 import net.minecraft.block.Block;
 import net.minecraft.client.multiplayer.WorldClient;

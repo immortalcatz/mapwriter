@@ -9,10 +9,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.imageio.ImageIO;
+import mapwriter.Render;
+import mapwriter.Texture;
 import net.minecraft.world.chunk.Chunk;
+import org.lwjgl.opengl.GL11;
 
 /**
  * @author Two
@@ -22,12 +27,14 @@ public class Region {
   public static final int CHUNK_SIZE = 16; // chunk size in Minecraft
   public static final int REGION_SIZE = 1024; // must be a power of 2
   public static final int CHUNKPOS_MASK = REGION_SIZE / CHUNK_SIZE - 1;
-  public static final int REGION_DIVISOR = Region.REGION_SIZE / Region.CHUNK_SIZE;
   public static final String IMAGE_TYPE = "png";
 
-  final int[] pixels = new int[REGION_SIZE * REGION_SIZE]; // access needs to be thread-safe
+  public static Region fromFile(final String saveDir, final RegionID regionID) {
+    return fromFile(Paths.get(saveDir, regionID.toFilename()), regionID);
+  }
 
-  public static Region fromFile(final Path filepath) {
+  public static Region fromFile(final Path filepath, final RegionID regionID) {
+    final Region result = new Region(regionID);
     if (Files.exists(filepath)) {
       InputStream in = null;
       try {
@@ -37,7 +44,7 @@ public class Region {
           Files.delete(filepath); // kill it with fire!
           throw new IOException("Image data is of wrong size. Expected " + REGION_SIZE + "x" + REGION_SIZE + " but got " + image.getWidth() + "x" + image.getHeight());
         }
-        return new Region(image.getRGB(0, 0, REGION_SIZE, REGION_SIZE, null, 0, REGION_SIZE));
+        result.setRGB(image.getRGB(0, 0, REGION_SIZE, REGION_SIZE, null, 0, REGION_SIZE));
       } catch (Exception e) {
         FMLLog.warning("Unable to read map data file '%s': %s", filepath.getFileName().toString(), e.toString());
       } finally {
@@ -49,38 +56,41 @@ public class Region {
         }
       }
     }
-    return new Region();
+    return result;
   }
 
-  public Region() {
+  public final RegionID regionID;
+  final Texture texture;
+  final AtomicBoolean requireTextureUpdate = new AtomicBoolean(true);
+
+  public Region(final RegionID regionID) {
+    Objects.requireNonNull(regionID);
+    this.regionID = regionID;
+    this.texture = new Texture(REGION_SIZE, REGION_SIZE);
   }
 
-  public Region(final int[] newPixels) {
-    Objects.requireNonNull(newPixels);
-    if (newPixels.length != this.pixels.length) {
-      throw new IllegalArgumentException("Pixel size does not match. Expected " + this.pixels.length + " but got " + newPixels.length);
-    }
-    System.arraycopy(newPixels, 0, this.pixels, 0, this.pixels.length);
+  public void updateChunk(final Chunk chunk, final int[] newPixels) {
+    updateChunk(chunk.xPosition, chunk.zPosition, newPixels);
   }
 
-  public void setChunk(final Chunk chunk, final int[] newPixels) {
-    setChunk(chunk.xPosition, chunk.zPosition, newPixels);
+  public void updateChunk(final int chunkX, final int chunkZ, final int[] newPixels) {
+    setRGB((chunkX * CHUNK_SIZE) & CHUNKPOS_MASK, (chunkZ * CHUNK_SIZE) & CHUNKPOS_MASK, CHUNK_SIZE, CHUNK_SIZE, newPixels);
   }
 
-  public void setChunk(final int chunkX, final int chunkZ, final int[] newPixels) {
-    modifyPixels((chunkX * CHUNK_SIZE) & CHUNKPOS_MASK, (chunkZ * CHUNK_SIZE) & CHUNKPOS_MASK, CHUNK_SIZE, CHUNK_SIZE, newPixels);
+  public void setRGB(final int[] newPixels) {
+    this.texture.setRGB(newPixels);
   }
 
-  public void modifyPixels(final int offsetX, final int offsetZ, final int width, final int height, final int[] newPixels) {
-    synchronized (pixels) {
-      for (int line = 0; line < height; ++line) {
-        System.arraycopy(newPixels, line * width, this.pixels, (offsetZ + line) * REGION_SIZE + offsetX, width);
-      }
-    }
+  public void setRGB(final int offsetX, final int offsetZ, final int width, final int height, final int[] newPixels) {
+    this.texture.setRGB(offsetX, offsetZ, width, height, newPixels, 0);
+  }
+
+  public boolean save(final String saveDir) {
+    return saveAs(Paths.get(saveDir, regionID.toFilename()));
   }
 
   public boolean saveAs(final Path filepath) {
-    final BufferedImage image = this.asImage();
+    final BufferedImage image = this.texture.asImage();
     OutputStream out = null;
     try {
       out = Files.newOutputStream(filepath, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -99,12 +109,17 @@ public class Region {
     }
   }
 
-  public BufferedImage asImage() {
-    final BufferedImage result = new BufferedImage(REGION_SIZE, REGION_SIZE, BufferedImage.TYPE_INT_ARGB);
-    synchronized (pixels) {
-      result.setRGB(0, 0, REGION_SIZE, REGION_SIZE, pixels, 0, REGION_SIZE);
-    }
-    return result;
+  public void draw() {
+    GL11.glPushMatrix();
+    this.translateToTile();
+    this.texture.bind();
+    Render.drawTexturedRect(0, 0, this.texture.width, this.texture.height);
+    this.texture.unbind();
+    GL11.glPopMatrix();
+  }
+
+  protected void translateToTile() {
+    GL11.glTranslatef(regionID.x, regionID.z, 0.0f);
   }
 
 }

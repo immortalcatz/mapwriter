@@ -1,4 +1,4 @@
-package mapwriter.region;
+package outdated.mapwriter.region;
 
 import mapwriter.BlockColourGen;
 import net.minecraft.world.chunk.Chunk;
