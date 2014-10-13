@@ -45,7 +45,7 @@ public class MapView {
     this.updateView();
     GL11.glPushMatrix();
 
-    GL11.glTranslated(-coordLeft, -coordTop, -2000.0); // z is -2000 so that it is drawn above the 3D world, but below GUI
+    GL11.glTranslated(-coordLeft, -coordTop, 0.0);
     for (final Region region : regions) {
       region.draw();
     }

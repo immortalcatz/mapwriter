@@ -6,6 +6,7 @@ import mapwriter.Mw;
 import mapwriter.Render;
 import mapwriter.gui.MapView;
 import mapwriter.map.mapmode.MapMode;
+import mapwriter.mapgen.RegionManager;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
@@ -39,7 +40,7 @@ public class MapRenderer {
       Render.setCircularStencil(0, 0, this.mapMode.h / 2.0);
     }
 
-    Mw.instance.getRegionManager(mapView.getDimensionID());
+    mapView.renderMap();
 
     if (this.mapMode.circular) {
       Render.disableStencil();

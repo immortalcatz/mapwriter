@@ -14,11 +14,13 @@ public class MwGuiOptions extends GuiScreen {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public void initGui() {
     this.optionSlot = new MwGuiOptionSlot(this, this.mc);
     this.optionSlot.registerScrollButtons(7, 8);
 
-    this.buttonList.add(new GuiButton(200, (this.width / 2) - 50, this.height - 28, 100, 20, "Done"));
+    final GuiButton button = new GuiButton(200, (this.width / 2) - 50, this.height - 28, 100, 20, "Done");
+    this.buttonList.add(button);
   }
 
   @Override

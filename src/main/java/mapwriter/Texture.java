@@ -15,6 +15,7 @@ public class Texture {
   public final int size;
   public final int width;
   public final int height;
+  final int[] pixels;
   final IntBuffer pixelBuf;
   final AtomicBoolean requiresUpdate = new AtomicBoolean(false);
   int id = -1;
@@ -24,6 +25,7 @@ public class Texture {
     this.width = width;
     this.height = height;
     this.size = this.width * this.height;
+    this.pixels = new int[size];
     this.pixelBuf = MwUtil.newDirectIntBuffer(width * height);
 
     this.id = GL11.glGenTextures();
@@ -47,7 +49,8 @@ public class Texture {
     this.width = Render.getTextureWidth();
     this.height = Render.getTextureHeight();
     this.size = this.width * this.height;
-    this.pixelBuf = MwUtil.newIntBuffer(this.size);
+    this.pixels = new int[size];
+    this.pixelBuf = MwUtil.newDirectIntBuffer(this.size);
     GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
   }
 
@@ -60,43 +63,39 @@ public class Texture {
   }
 
   public int[] getRGB() {
-    synchronized (this.pixelBuf) {
-      return Arrays.copyOf(this.pixelBuf.array(), this.size);
+    synchronized (this.pixels) {
+      return Arrays.copyOf(this.pixels, this.size);
     }
   }
 
   // Copy a rectangular sub-region of dimensions 'w' x 'h' from the pixel buffer to the array 'pixels'.
   public void getRGB(final int x, final int y, final int width, final int height, final int[] pixels, final int offset) {
-    final int bufOffset = (y * this.width) + x;
-    synchronized (this.pixelBuf) {
-      for (int i = 0; i < height; ++i) {
-        this.pixelBuf.position(bufOffset + (i * this.width));
-        this.pixelBuf.get(pixels, offset + (i * width), width);
+    final int bufferOffset = (y * this.width) + x;
+    synchronized (this.pixels) {
+      for (int line = 0; line < height; ++line) {
+        System.arraycopy(this.pixels, bufferOffset + line * this.width, pixels, offset + line * width, width);
       }
     }
   }
 
   public void setRGB(final int[] pixels) {
     Objects.requireNonNull(pixels);
-    if (pixels.length != this.size) {
-      throw new IllegalArgumentException("Pixel size does not match. Expected " + size + " but got " + pixels.length);
+    if (pixels.length != this.pixels.length) {
+      throw new IllegalArgumentException("Pixel size does not match. Expected " + this.pixels.length + " but got " + pixels.length);
     }
-    synchronized (this.pixelBuf) {
+    synchronized (this.pixels) {
       requiresUpdate.set(true);
-      this.pixelBuf.clear();
-      this.pixelBuf.put(pixels);
-      this.pixelBuf.flip();
+      System.arraycopy(pixels, 0, this.pixels, 0, this.pixels.length);
     }
   }
 
   // Copy a rectangular sub-region of dimensions 'w' x 'h' from the array 'pixels' to the pixel buffer.
   public void setRGB(final int x, final int y, final int width, final int height, final int[] pixels, final int offset) {
-    final int bufferOffset = (y * this.width) + x;
-    synchronized (this.pixelBuf) {
+    final int bufferOffset = x + (y * this.width);
+    synchronized (this.pixels) {
       requiresUpdate.set(true);
       for (int line = 0; line < height; ++line) {
-        this.pixelBuf.position(bufferOffset + (line * this.width));
-        this.pixelBuf.put(pixels, offset + (line * width), width);
+        System.arraycopy(pixels, offset + line * width, this.pixels, bufferOffset + line * this.width, width);
       }
     }
   }
@@ -112,29 +111,32 @@ public class Texture {
 
   protected void updateTextureData() {
     if (requiresUpdate.compareAndSet(true, false)) {
-      synchronized (this.pixelBuf) {
-        this.pixelBuf.rewind();
+      synchronized (this.pixels) {
+        this.pixelBuf.clear();
+        this.pixelBuf.put(this.pixels);
+        this.pixelBuf.flip();
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, this.width, this.height, 0, GL12.GL_BGRA, GL11.GL_UNSIGNED_BYTE, this.pixelBuf);
       }
     }
   }
 
-// copy pixels from GL texture to pixelBuf
   public void fetchTextureData() {
-    this.bind();
-    synchronized (this.pixelBuf) {
+    GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.id);
+    synchronized (this.pixels) {
       this.pixelBuf.clear();
       GL11.glGetTexImage(GL11.GL_TEXTURE_2D, 0, GL12.GL_BGRA, GL11.GL_UNSIGNED_BYTE, this.pixelBuf);
       // getTexImage does not seem to advance the buffer position, so flip does not work here
       this.pixelBuf.limit(this.width * this.height);
+      this.pixelBuf.position(0);
+      this.pixelBuf.get(this.pixels);
     }
-    this.unbind();
+    GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
   }
 
   public BufferedImage asImage() {
     final BufferedImage result = new BufferedImage(this.width, this.height, BufferedImage.TYPE_INT_ARGB);
-    synchronized (this.pixelBuf) {
-      result.setRGB(0, 0, this.width, this.height, this.pixelBuf.array(), 0, this.width);
+    synchronized (this.pixels) {
+      result.setRGB(0, 0, this.width, this.height, this.pixels, 0, this.width);
     }
     return result;
   }

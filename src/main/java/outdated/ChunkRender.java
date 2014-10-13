@@ -1,6 +1,5 @@
-package outdated.mapwriter.region;
+package outdated;
 
-import mapwriter.BlockColourGen;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 

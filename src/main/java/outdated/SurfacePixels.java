@@ -1,4 +1,4 @@
-package outdated.mapwriter.region;
+package outdated;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

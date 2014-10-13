@@ -12,7 +12,6 @@ public class ChunkEntry implements Comparable<ChunkEntry> {
   public final Chunk chunk;
   public final int x, z, dimension;
   public final int hashCode;
-  public volatile long lastUpdate = 0;
 
   protected static int generateHashCode(final int x, final int z, final int dimension) {
     int hash = 7;
@@ -49,7 +48,14 @@ public class ChunkEntry implements Comparable<ChunkEntry> {
 
   @Override
   public int compareTo(final ChunkEntry other) {
-    return Long.compare(this.lastUpdate, other.lastUpdate);
+    int result = Integer.compare(this.x, other.x);
+    if (result == 0) {
+      result = Integer.compare(this.z, other.z);
+      if (result == 0) {
+        result = Integer.compare(this.dimension, other.dimension);
+      }
+    }
+    return result;
   }
 
   @Override

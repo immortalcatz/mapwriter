@@ -6,6 +6,7 @@ import cpw.mods.fml.common.FMLLog;
 import java.util.concurrent.ConcurrentHashMap;
 import mapwriter.Texture;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.util.IIcon;
@@ -18,12 +19,19 @@ public class ColorConvert {
 
   static final int ALPHA_FULL = 0xFF000000;
   static final int BLACK = 0xFF000000;
+  static final int BLOCK_SIDE_TOP = 1; // Minecraft says so
 
-  static ConcurrentHashMap<Integer, Integer> knownColors = new ConcurrentHashMap<Integer, Integer>();
-  static volatile Texture terrainTexture = null;
+  static final ConcurrentHashMap<Integer, Integer> knownColors = new ConcurrentHashMap<Integer, Integer>();
+  static Texture terrainTexture = null;
 
-  public void reset() {
-    terrainTexture = null;
+  public static void reset() {
+    final int terrainTextureId = Minecraft.getMinecraft().renderEngine.getTexture(TextureMap.locationBlocksTexture).getGlTextureId();
+    if (terrainTextureId != 0) {
+      terrainTexture = new Texture(terrainTextureId);
+      terrainTexture.fetchTextureData();
+    } else {
+      FMLLog.severe("Unable to get Minecraft terrain texture.");
+    }
     knownColors.clear();
   }
 
@@ -36,30 +44,37 @@ public class ColorConvert {
   }
 
   public static Texture getTerrainTexture() {
-    if (terrainTexture == null) {
-      final int terrainTextureId = Minecraft.getMinecraft().renderEngine.getTexture(TextureMap.locationBlocksTexture).getGlTextureId();
-      if (terrainTextureId != 0) {
-        terrainTexture = new Texture(terrainTextureId);
-        terrainTexture.fetchTextureData();
-      } else {
-        FMLLog.warning("Unable to get Minecraft terrain texture.");
-      }
-    }
     return terrainTexture;
   }
 
-  public static int averageBlockColor(final World world, final int x, final int y, final int z) {
-    final Block block = world.getBlock(x, y, z);
-    final int metadata = world.getBlockMetadata(x, y, z);
-    final int mapID = compressBlockIdAndMeta(block, metadata);
-    Integer result = knownColors.get(mapID);
-    if (result == null) {
-      result = averageColor(block.getIcon(1, metadata));
-      if (result != BLACK) {
-        knownColors.put(mapID, result);
-      }
+  public static int averageBlockColor(final World world, final int x, int y, final int z) {
+    Block block = world.getBlock(x, y, z);
+    while ((y > 0) && (block.getMaterial() == Material.air)) {
+      --y;
+      block = world.getBlock(x, y, z);
     }
-    return result;
+    if (y > 0) {
+      final int metadata = world.getBlockMetadata(x, y, z);
+      final int mapID = compressBlockIdAndMeta(block, metadata);
+      Integer result = knownColors.get(mapID);
+      if (result == null) {
+        final IIcon icon = block.getIcon(BLOCK_SIDE_TOP, metadata);
+        if (icon == null) {
+          FMLLog.warning("Block %16s has no top texture", block.getUnlocalizedName());
+          result = BLACK;
+        } else {
+          result = averageColor(icon);
+          if (result != BLACK) {
+            knownColors.put(mapID, result);
+          }
+        }
+      }
+//      FMLLog.info("Average block color for %16s: %08X", block.getUnlocalizedName(), result);
+      return result;
+    } else {
+//      FMLLog.warning("Unable to find any blocks at %d, %d", x, z);
+    }
+    return BLACK;
   }
 
   public static int averageColor(final IIcon icon) {
@@ -75,6 +90,7 @@ public class ColorConvert {
 
       return calculateAverageColor(pixels);
     } else {
+      FMLLog.severe("Terrain texture not loaded!");
       return BLACK; // if nothing else, the average color is black  for the moment
     }
   }
@@ -86,7 +102,7 @@ public class ColorConvert {
 
     int pixelCount = 0;
     for (final int pixel : pixels) {
-      if ((pixel & ALPHA_FULL) > 0) { // ignore fully transparent pixels
+      if ((pixel & ALPHA_FULL) != 0) { // ignore fully transparent pixels
         ++pixelCount;
         red += (pixel >>> 16) & 0xFF;
         green += (pixel >>> 8) & 0xFF;

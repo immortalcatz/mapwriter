@@ -6,7 +6,6 @@ import mapwriter.forge.MwKeyHandler;
 import mapwriter.gui.MwGui;
 import mapwriter.gui.MwGuiMarkerDialog;
 import mapwriter.map.*;
-import outdated.mapwriter.region.BlockColours;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGameOver;
 import net.minecraft.client.settings.KeyBinding;
@@ -23,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import mapwriter.gui.MapView;
 import mapwriter.mapgen.ChunkManager;
+import mapwriter.mapgen.ColorConvert;
 import mapwriter.mapgen.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
 
@@ -76,7 +76,6 @@ public class Mw {
   // instances of components
   public MiniMap miniMap;
   public MarkerManager markerManager;
-  public BlockColours blockColours;
   public RegionManager regionManager;
   public ChunkManager chunkManager = new ChunkManager();
   public Trail playerTrail;
@@ -311,6 +310,8 @@ public class Mw {
     this.tickCounter = 0;
     this.onPlayerDeathAlreadyFired = false;
 
+    ColorConvert.reset(); // will as well fetch Minecraft block texture, which has to be done from the main thread
+    
     //this.multiplayer = !this.mc.isIntegratedServerRunning();
     // marker manager only depends on the config being loaded
     this.markerManager = new MarkerManager(this.worldConfig, catMarkers);
@@ -352,6 +353,7 @@ public class Mw {
 
     if (this.initialized) {
       this.initialized = false;
+      terminateExecutor();
 
       this.chunkManager.removeAll();
 
@@ -359,8 +361,6 @@ public class Mw {
         regionManager.dispose();
       }
       this.regionManager = null;
-
-      terminateExecutor();
 
       this.playerTrail.close();
 
@@ -405,6 +405,8 @@ public class Mw {
     if (this.initialized == false) {
       this.load();
     }
+    
+    this.regionManager.tick();
 
     if (this.mc.thePlayer != null) {
 

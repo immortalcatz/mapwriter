@@ -1,4 +1,4 @@
-package outdated.mapwriter.region;
+package outdated;
 
 import java.io.File;
 import java.util.HashMap;

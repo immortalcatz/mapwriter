@@ -2,14 +2,25 @@
  */
 package mapwriter.mapgen;
 
+import cpw.mods.fml.common.FMLLog;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import javax.imageio.ImageIO;
 import mapwriter.Mw;
+import static mapwriter.mapgen.Region.REGION_SIZE;
 import net.minecraft.world.chunk.Chunk;
 
 /**
@@ -17,13 +28,60 @@ import net.minecraft.world.chunk.Chunk;
  */
 public class RegionManager {
 
+  class RegionData implements Comparable<RegionData> {
+
+    RegionID regionID;
+    int[] pixels;
+
+    public RegionData(final RegionID regionID, final int[] pixels) {
+      this.regionID = regionID;
+      this.pixels = pixels;
+    }
+
+    @Override
+    public int compareTo(final RegionData other) {
+      return this.regionID.compareTo(other.regionID);
+    }
+
+    @Override
+    public int hashCode() {
+      return regionID.hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      final RegionData other = (RegionData) obj;
+      return (this.regionID.equals(other.regionID));
+    }
+
+  }
+
   // Class variables
   final ConcurrentHashMap<RegionID, Region> cachedRegions = new ConcurrentHashMap<RegionID, Region>();
   final ConcurrentHashMap<RegionID, Region> modifiedRegions = new ConcurrentHashMap<RegionID, Region>();
+  final ConcurrentSkipListSet<RegionData> regionsToCreate = new ConcurrentSkipListSet<RegionData>();
   final String saveDir;
 
   public RegionManager(final String saveDir) {
     this.saveDir = saveDir;
+  }
+
+  public void tick() {
+    RegionData regionData;
+    while ((regionData = this.regionsToCreate.pollFirst()) != null) {
+      final Region newRegion = new Region(regionData.regionID);
+      if (regionData.pixels != null) {
+        newRegion.setRGB(regionData.pixels);
+      }
+      this.cachedRegions.putIfAbsent(newRegion.regionID, newRegion);
+      FMLLog.info("Created Region %d, %d", regionData.regionID.regionX, regionData.regionID.regionZ);
+    }
   }
 
   protected Region getOrCreateRegion(final RegionID regionID) {
@@ -52,8 +110,10 @@ public class RegionManager {
   public void updateChunk(final Chunk chunk, final int[] newPixels) {
     final RegionID regionID = RegionID.byChunk(chunk.xPosition, chunk.zPosition);
     final Region region = getOrCreateRegion(regionID);
-    region.updateChunk(chunk, newPixels);
-    modifiedRegions.put(regionID, region);
+    if (region != null) {
+      region.updateChunk(chunk, newPixels);
+      modifiedRegions.put(regionID, region);
+    }
   }
 
   public void saveAll() {
@@ -67,12 +127,42 @@ public class RegionManager {
     entries.forEach(disposeAll);
   }
 
+  protected static int[] loadSavedRegion(final Path filepath) {
+    if (Files.exists(filepath)) {
+      InputStream in = null;
+      try {
+        in = Files.newInputStream(filepath, StandardOpenOption.READ);
+        final BufferedImage image = ImageIO.read(in);
+        if ((image.getWidth() != REGION_SIZE) || (image.getHeight() != REGION_SIZE)) {
+          Files.delete(filepath); // kill it with fire!
+          throw new IOException("Image data is of wrong size. Expected " + REGION_SIZE + "x" + REGION_SIZE + " but got " + image.getWidth() + "x" + image.getHeight());
+        }
+        return image.getRGB(0, 0, REGION_SIZE, REGION_SIZE, null, 0, REGION_SIZE);
+      } catch (Exception e) {
+        FMLLog.warning("Unable to read map data file '%s': %s", filepath.getFileName().toString(), e.toString());
+      } finally {
+        if (in != null) {
+          try {
+            in.close();
+          } catch (Exception e) {
+          }
+        }
+      }
+    }
+    return null;
+  }
   //--- Tasks ------------------------------------------------------------------
   final Function<RegionID, Region> regionGenerator = new Function<RegionID, Region>() {
 
     @Override
     public Region apply(final RegionID regionID) {
-      return Region.fromFile(saveDir, regionID); // this returns a previously saved region or an empty one
+      final RegionData regionData = new RegionData(regionID, null);
+      if (regionsToCreate.contains(regionData) == false) {
+        regionData.pixels = loadSavedRegion(Paths.get(saveDir, regionID.toFilename()));
+        regionsToCreate.add(regionData);
+      }
+
+      return null;
     }
   };
 

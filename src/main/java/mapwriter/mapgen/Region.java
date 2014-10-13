@@ -26,7 +26,7 @@ public class Region {
 
   public static final int CHUNK_SIZE = 16; // chunk size in Minecraft
   public static final int REGION_SIZE = 1024; // must be a power of 2
-  public static final int CHUNKPOS_MASK = REGION_SIZE / CHUNK_SIZE - 1;
+  public static final int REGION_POSITION_MASK = REGION_SIZE - 1;
   public static final String IMAGE_TYPE = "png";
 
   public static Region fromFile(final String saveDir, final RegionID regionID) {
@@ -74,7 +74,7 @@ public class Region {
   }
 
   public void updateChunk(final int chunkX, final int chunkZ, final int[] newPixels) {
-    setRGB((chunkX * CHUNK_SIZE) & CHUNKPOS_MASK, (chunkZ * CHUNK_SIZE) & CHUNKPOS_MASK, CHUNK_SIZE, CHUNK_SIZE, newPixels);
+    setRGB((chunkX * CHUNK_SIZE) & REGION_POSITION_MASK, (chunkZ * CHUNK_SIZE) & REGION_POSITION_MASK, CHUNK_SIZE, CHUNK_SIZE, newPixels);
   }
 
   public void setRGB(final int[] newPixels) {

@@ -1,4 +1,4 @@
-package mapwriter;
+package outdated;
 // This is separate from BlockColours because it needs to run in the GL rendering thread
 // whereas the generated BlockColours object is used only in the background thread.
 // So basically split to make it clear that BlockColourGen and the generated BlockColours
