@@ -13,7 +13,7 @@ public class RegionID {
   public final int regionX, regionZ; // internal coordinates
   protected final int hash;
 
-  public static RegionID byCoordinates(final float x, final float z) {
+  public static RegionID byCoordinates(final double x, final double z) {
     return new RegionID(Math.floorDiv((int) x, Region.REGION_SIZE), Math.floorDiv((int) z, Region.REGION_SIZE));
   }
 

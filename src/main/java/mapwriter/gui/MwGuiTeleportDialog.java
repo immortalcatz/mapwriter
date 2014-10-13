@@ -1,7 +1,6 @@
 package mapwriter.gui;
 
 import mapwriter.Mw;
-import mapwriter.map.MapView;
 import net.minecraft.client.gui.GuiScreen;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -10,13 +9,11 @@ import mapwriter.Config;
 @SideOnly(Side.CLIENT)
 public class MwGuiTeleportDialog extends MwGuiTextDialog {
 
-  final Mw mw;
   final MapView mapView;
   final int teleportX, teleportZ;
 
-  public MwGuiTeleportDialog(GuiScreen parentScreen, Mw mw, MapView mapView, int x, int y, int z) {
+  public MwGuiTeleportDialog(GuiScreen parentScreen, MapView mapView, int x, int y, int z) {
     super(parentScreen, "Teleport Height:", "" + y, "invalid height");
-    this.mw = mw;
     this.mapView = mapView;
     this.teleportX = x;
     this.teleportZ = z;
@@ -30,7 +27,7 @@ public class MwGuiTeleportDialog extends MwGuiTextDialog {
     if (this.inputValid) {
       height = Math.min(Math.max(0, height), 255);
       Config.instance.defaultTeleportHeight = height;
-      this.mw.teleportToMapPos(this.mapView, this.teleportX, height, this.teleportZ);
+      Mw.instance.teleportToMapPos(this.mapView, this.teleportX, height, this.teleportZ);
       done = true;
     }
     return done;

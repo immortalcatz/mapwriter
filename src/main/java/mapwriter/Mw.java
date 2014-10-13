@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import mapwriter.gui.MapView;
 import mapwriter.mapgen.ChunkManager;
 import mapwriter.mapgen.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
@@ -75,8 +76,6 @@ public class Mw {
   public final static String blockColourOverridesFileName = "MapWriterBlockColourOverrides.txt";
 
   // instances of components
-  public MapTexture mapTexture;
-  public UndergroundTexture undergroundMapTexture;
   public MiniMap miniMap;
   public MarkerManager markerManager;
   public BlockColours blockColours;
@@ -197,6 +196,15 @@ public class Mw {
     }
   }
 
+  public int nextDimension(final int index) {
+    final int next = index + 1;
+    if (next < this.dimensionList.size()) {
+      return this.dimensionList.get(next);
+    } else {
+      return this.dimensionList.get(0);
+    }
+  }
+
   public void toggleMarkerMode() {
     this.markerManager.nextGroup();
     this.markerManager.update();
@@ -223,7 +231,7 @@ public class Mw {
 
   public void teleportToMapPos(MapView mapView, int x, int y, int z) {
     if (!Config.instance.teleportCommand.equals("warp")) {
-      double scale = mapView.getDimensionScaling(this.playerDimension);
+      double scale = 1.0;
       this.teleportTo((int) (x / scale), y, (int) (z / scale));
     } else {
       MwUtil.printBoth("teleport command is set to 'warp', can only warp to markers");
@@ -244,20 +252,6 @@ public class Mw {
     if (this.regionManager != null) {
       regionManager.saveAll();
     }
-    MapTexture oldMapTexture = this.mapTexture;
-    MapTexture newMapTexture = new MapTexture(Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
-    this.mapTexture = newMapTexture;
-    if (oldMapTexture != null) {
-      oldMapTexture.dispose();
-    }
-    this.regionManager = new RegionManager(this.imageDir.toString());
-
-    UndergroundTexture oldTexture = this.undergroundMapTexture;
-    UndergroundTexture newTexture = new UndergroundTexture(this, Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
-    this.undergroundMapTexture = newTexture;
-    if (oldTexture != null) {
-      this.undergroundMapTexture.dispose();
-    }
   }
 
   public void setCoordsMode(int mode) {
@@ -270,8 +264,6 @@ public class Mw {
   }
 
   public void toggleUndergroundMode() {
-    Config.instance.undergroundMode = !Config.instance.undergroundMode;
-    this.miniMap.view.setUndergroundMode(Config.instance.undergroundMode);
   }
 
   public void setServerDetails(String hostname, int port) {
@@ -330,16 +322,13 @@ public class Mw {
     this.markerManager = new MarkerManager(this.worldConfig, catMarkers);
     this.markerManager.load();
 
-    this.playerTrail = new Trail(this, "player");
+    this.playerTrail = new Trail("player");
 
-    // mapTexture depends on config being loaded
-    this.mapTexture = new MapTexture(Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
-    this.undergroundMapTexture = new UndergroundTexture(this, Config.instance.textureSize, Config.instance.linearTextureScalingEnabled);
     // region manager depends on config, mapTexture, and block colours
     this.regionManager = new RegionManager(this.imageDir.toString());
     // overlay manager depends on mapTexture
-    this.miniMap = new MiniMap(this);
-    this.miniMap.view.setDimension(this.mc.thePlayer.dimension);
+    this.miniMap = new MiniMap();
+    this.miniMap.view.setDimensionID(this.mc.thePlayer.dimension);
 
     this.chunkManager = new ChunkManager();
 
@@ -373,7 +362,7 @@ public class Mw {
       this.chunkManager.removeAll();
 
       if (this.regionManager != null) {
-        regionManager.saveAll();
+        regionManager.dispose();
       }
       this.regionManager = null;
 
@@ -387,9 +376,6 @@ public class Mw {
       // close overlay
       this.miniMap.close();
       this.miniMap = null;
-
-      this.undergroundMapTexture.dispose();
-      this.mapTexture.dispose();
 
       this.saveWorldConfig();
       Config.instance.save();
@@ -410,7 +396,7 @@ public class Mw {
     this.playerDimension = world.provider.dimensionId;
     if (this.initialized) {
       this.addDimension(this.playerDimension);
-      this.miniMap.view.setDimension(this.playerDimension);
+      this.miniMap.view.setDimensionID(this.playerDimension);
     }
   }
 
@@ -430,10 +416,6 @@ public class Mw {
 
       this.updatePlayer();
 
-      if (Config.instance.undergroundMode && ((this.tickCounter % 30) == 0)) {
-        this.undergroundMapTexture.update();
-      }
-
       // check if the game over screen is being displayed and if so 
       // (thanks to Chrixian for this method of checking when the player is dead)
       if (this.mc.currentScreen instanceof GuiGameOver) {
@@ -445,12 +427,10 @@ public class Mw {
         // if the player is not dead
         this.onPlayerDeathAlreadyFired = false;
         // if in game (no gui screen) center the minimap on the player and render it.
-        this.miniMap.view.setViewCentreScaled(this.playerX, this.playerZ, this.playerDimension);
+        this.miniMap.view.setCenter(this.playerX, this.playerZ);
+        this.miniMap.view.setDimensionID(this.playerDimension);
         this.miniMap.drawCurrentMap();
       }
-
-      // update GL texture of mapTexture if updated
-      this.mapTexture.processTextureUpdates();
 
       // let the renderEngine know we have changed the bound texture.
       //this.mc.renderEngine.resetBoundTexture();
@@ -510,7 +490,7 @@ public class Mw {
 
       } else if (kb == MwKeyHandler.keyMapGui) {
         // open map gui
-        this.mc.displayGuiScreen(new MwGui(this));
+        this.mc.displayGuiScreen(new MwGui());
 
       } else if (kb == MwKeyHandler.keyNewMarker) {
         // open new marker dialog
@@ -548,10 +528,10 @@ public class Mw {
         }
       } else if (kb == MwKeyHandler.keyZoomIn) {
         // zoom in
-        this.miniMap.view.adjustZoomLevel(-1);
+        this.miniMap.view.modifyZoom(-1);
       } else if (kb == MwKeyHandler.keyZoomOut) {
         // zoom out
-        this.miniMap.view.adjustZoomLevel(1);
+        this.miniMap.view.modifyZoom(1);
       } else if (kb == MwKeyHandler.keyUndergroundMode) {
         this.toggleUndergroundMode();
       }

@@ -3,6 +3,7 @@ package mapwriter.map;
 import java.awt.Point;
 
 import mapwriter.Render;
+import mapwriter.gui.MapView;
 import mapwriter.map.mapmode.MapMode;
 
 public class Marker {
@@ -17,7 +18,7 @@ public class Marker {
 
   public Point.Double screenPos = new Point.Double(0, 0);
 
-  private static int[] colours = new int[]{
+  private static final int[] colours = new int[]{
     0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff,
     0xff8000, 0x8000ff};
   // static so that current index is shared between all markers
@@ -53,7 +54,7 @@ public class Marker {
   }
 
   public void draw(MapMode mapMode, MapView mapView, int borderColour) {
-    double scale = mapView.getDimensionScaling(this.dimension);
+    double scale = 1.0;
     Point.Double p = mapMode.getClampedScreenXY(mapView, this.x * scale, this.z * scale);
     this.screenPos.setLocation(p.x + mapMode.xTranslation, p.y + mapMode.yTranslation);
 

@@ -5,7 +5,6 @@ import java.awt.Point;
 import mapwriter.Mw;
 import mapwriter.forge.MwKeyHandler;
 import mapwriter.map.MapRenderer;
-import mapwriter.map.MapView;
 import mapwriter.map.Marker;
 import mapwriter.map.mapmode.FullScreenMapMode;
 import mapwriter.map.mapmode.MapMode;
@@ -22,7 +21,6 @@ import mapwriter.Config;
 @SideOnly(Side.CLIENT)
 public class MwGui extends GuiScreen {
 
-  private Mw mw;
   private MapMode mapMode;
   private MapView mapView;
   private MapRenderer map;
@@ -37,8 +35,8 @@ public class MwGui extends GuiScreen {
   //private int mouseMiddleHeld = 0;
   private int mouseLeftDragStartX = 0;
   private int mouseLeftDragStartY = 0;
-  private double viewXStart;
-  private double viewZStart;
+  private double viewXCenter;
+  private double viewZCenter;
   private Marker movingMarker = null;
   private int movingMarkerXStart = 0;
   private int movingMarkerZStart = 0;
@@ -78,15 +76,14 @@ public class MwGui extends GuiScreen {
     }
   }
 
-  public MwGui(Mw mw) {
-    this.mw = mw;
+  public MwGui() {
     this.mapMode = new FullScreenMapMode();
-    this.mapView = new MapView(this.mw);
-    this.map = new MapRenderer(this.mw, this.mapMode, this.mapView);
+    this.mapView = new MapView();
+    this.map = new MapRenderer(this.mapMode, this.mapView);
 
-    this.mapView.setDimension(this.mw.miniMap.view.getDimension());
-    this.mapView.setViewCentreScaled(this.mw.playerX, this.mw.playerZ, this.mw.playerDimension);
-    this.mapView.setZoomLevel(0);
+    this.mapView.setDimensionID(Mw.instance.miniMap.view.getDimensionID());
+    this.mapView.setCenter(Mw.instance.playerX, Mw.instance.playerZ);
+    this.mapView.setZoom(0);
 
     this.helpLabel = new Label();
     this.optionsLabel = new Label();
@@ -95,11 +92,11 @@ public class MwGui extends GuiScreen {
     this.overlayLabel = new Label();
   }
 
-  public MwGui(Mw mw, int dim, int x, int z) {
-    this(mw);
-    this.mapView.setDimension(dim);
-    this.mapView.setViewCentreScaled(x, z, dim);
-    this.mapView.setZoomLevel(0);
+  public MwGui(int dim, int x, int z) {
+    this();
+    this.mapView.setDimensionID(dim);
+    this.mapView.setCenter(x, z);
+    this.mapView.setZoom(0);
   }
 
   // called when gui is displayed and every time the screen
@@ -117,7 +114,7 @@ public class MwGui extends GuiScreen {
   public void exitGui() {
     //MwUtil.log("closing GUI");
     // set the mini map dimension to the GUI map dimension when closing
-    this.mw.miniMap.view.setDimension(this.mapView.getDimension());
+    Mw.instance.miniMap.view.setDimensionID(this.mapView.getDimensionID());
     this.mapMode.close();
     Keyboard.enableRepeatEvents(false);
     this.mc.displayGuiScreen((GuiScreen) null);
@@ -130,7 +127,7 @@ public class MwGui extends GuiScreen {
   // to a marker when zoomed in to select it.
   public Marker getMarkerNearScreenPos(int x, int y) {
     Marker nearMarker = null;
-    for (Marker marker : this.mw.markerManager.visibleMarkerList) {
+    for (Marker marker : Mw.instance.markerManager.visibleMarkerList) {
       if (marker.screenPos != null) {
         if (marker.screenPos.distanceSq(x, y) < 6.0) {
           nearMarker = marker;
@@ -142,9 +139,9 @@ public class MwGui extends GuiScreen {
 
   public int getHeightAtBlockPos(int bX, int bZ) {
     int bY = 0;
-    int worldDimension = this.mw.mc.theWorld.provider.dimensionId;
-    if ((worldDimension == this.mapView.getDimension()) && (worldDimension != -1)) {
-      bY = this.mw.mc.theWorld.getChunkFromBlockCoords(bX, bZ).getHeightValue(bX & 0xf, bZ & 0xf);
+    int worldDimension = Mw.instance.mc.theWorld.provider.dimensionId;
+    if ((worldDimension == this.mapView.getDimensionID()) && (worldDimension != -1)) {
+      bY = Mw.instance.mc.theWorld.getChunkFromBlockCoords(bX, bZ).getHeightValue(bX & 0xf, bZ & 0xf);
     }
     return bY;
   }
@@ -155,11 +152,11 @@ public class MwGui extends GuiScreen {
   }
 
   public void deleteSelectedMarker() {
-    if (this.mw.markerManager.selectedMarker != null) {
-      //MwUtil.log("deleting marker %s", this.mw.markerManager.selectedMarker.name);
-      this.mw.markerManager.delMarker(this.mw.markerManager.selectedMarker);
-      this.mw.markerManager.update();
-      this.mw.markerManager.selectedMarker = null;
+    if (Mw.instance.markerManager.selectedMarker != null) {
+      //MwUtil.log("deleting marker %s", Mw.instance.markerManager.selectedMarker.name);
+      Mw.instance.markerManager.delMarker(Mw.instance.markerManager.selectedMarker);
+      Mw.instance.markerManager.update();
+      Mw.instance.markerManager.selectedMarker = null;
     }
   }
 
@@ -179,47 +176,44 @@ public class MwGui extends GuiScreen {
 
       case Keyboard.KEY_SPACE:
         // next marker group
-        this.mw.markerManager.nextGroup();
-        this.mw.markerManager.update();
+        Mw.instance.markerManager.nextGroup();
+        Mw.instance.markerManager.update();
         break;
 
       case Keyboard.KEY_C:
         // cycle selected marker colour
-        if (this.mw.markerManager.selectedMarker != null) {
-          this.mw.markerManager.selectedMarker.colourNext();
+        if (Mw.instance.markerManager.selectedMarker != null) {
+          Mw.instance.markerManager.selectedMarker.colourNext();
         }
         break;
 
       case Keyboard.KEY_N:
         // select next visible marker
-        this.mw.markerManager.selectNextMarker();
+        Mw.instance.markerManager.selectNextMarker();
         break;
 
       case Keyboard.KEY_HOME:
         // centre map on player
-        this.mapView.setViewCentreScaled(this.mw.playerX, this.mw.playerZ, this.mw.playerDimension);
+        this.mapView.setCenter(Mw.instance.playerX, Mw.instance.playerZ);
+        this.mapView.setDimensionID(Mw.instance.playerDimension);
         break;
 
       case Keyboard.KEY_END:
         // centre map on selected marker
-        if (this.mw.markerManager.selectedMarker != null) {
-          this.mapView.setViewCentreScaled(
-                  this.mw.markerManager.selectedMarker.x,
-                  this.mw.markerManager.selectedMarker.z,
-                  0
-          );
+        if (Mw.instance.markerManager.selectedMarker != null) {
+          this.mapView.setCenter(Mw.instance.markerManager.selectedMarker.x, Mw.instance.markerManager.selectedMarker.z);
+          this.mapView.setDimensionID(0);
         }
         break;
 
       case Keyboard.KEY_T:
-        if (this.mw.markerManager.selectedMarker != null) {
-          this.mw.teleportToMarker(this.mw.markerManager.selectedMarker);
+        if (Mw.instance.markerManager.selectedMarker != null) {
+          Mw.instance.teleportToMarker(Mw.instance.markerManager.selectedMarker);
           this.exitGui();
         } else {
           this.mc.displayGuiScreen(
                   new MwGuiTeleportDialog(
                           this,
-                          this.mw,
                           this.mapView,
                           this.mouseBlockX,
                           Config.instance.defaultTeleportHeight,
@@ -230,36 +224,34 @@ public class MwGui extends GuiScreen {
         break;
 
       case Keyboard.KEY_LEFT:
-        this.mapView.panView(-PAN_FACTOR, 0);
+        this.mapView.moveCenter(-PAN_FACTOR, 0);
         break;
       case Keyboard.KEY_RIGHT:
-        this.mapView.panView(PAN_FACTOR, 0);
+        this.mapView.moveCenter(PAN_FACTOR, 0);
         break;
       case Keyboard.KEY_UP:
-        this.mapView.panView(0, -PAN_FACTOR);
+        this.mapView.moveCenter(0, -PAN_FACTOR);
         break;
       case Keyboard.KEY_DOWN:
-        this.mapView.panView(0, PAN_FACTOR);
+        this.mapView.moveCenter(0, PAN_FACTOR);
         break;
 
       //case Keyboard.KEY_9:
       //	MwUtil.log("refreshing maptexture");
-      //	this.mw.mapTexture.updateTexture();
+      //	Mw.instance.mapTexture.updateTexture();
       //	break;
       default:
         if (key == MwKeyHandler.keyMapGui.getKeyCode()) {
           // exit on the next tick
           this.exit = 1;
         } else if (key == MwKeyHandler.keyZoomIn.getKeyCode()) {
-          this.mapView.adjustZoomLevel(-1);
+          this.mapView.modifyZoom(-1);
         } else if (key == MwKeyHandler.keyZoomOut.getKeyCode()) {
-          this.mapView.adjustZoomLevel(1);
+          this.mapView.modifyZoom(1);
         } else if (key == MwKeyHandler.keyNextGroup.getKeyCode()) {
-          this.mw.markerManager.nextGroup();
-          this.mw.markerManager.update();
+          Mw.instance.markerManager.nextGroup();
+          Mw.instance.markerManager.update();
         } else if (key == MwKeyHandler.keyUndergroundMode.getKeyCode()) {
-          this.mw.toggleUndergroundMode();
-          this.mapView.setUndergroundMode(Config.instance.undergroundMode);
         }
         break;
     }
@@ -287,25 +279,24 @@ public class MwGui extends GuiScreen {
     //int bZ = this.mouseToBlockZ(y);
     //int bY = this.getHeightAtBlockPos(bX, bZ);
     Marker marker = this.getMarkerNearScreenPos(x, y);
-    Marker prevMarker = this.mw.markerManager.selectedMarker;
+    Marker prevMarker = Mw.instance.markerManager.selectedMarker;
 
     if (button == 0) {
       if (this.dimensionLabel.posWithin(x, y)) {
         this.mc.displayGuiScreen(
                 new MwGuiDimensionDialog(
                         this,
-                        this.mw,
                         this.mapView,
-                        this.mapView.getDimension()
+                        this.mapView.getDimensionID()
                 )
         );
       } else if (this.optionsLabel.posWithin(x, y)) {
-        this.mc.displayGuiScreen(new MwGuiOptions(this, this.mw));
+        this.mc.displayGuiScreen(new MwGuiOptions(this));
       } else {
         this.mouseLeftHeld = 1;
         this.mouseLeftDragStartX = x;
         this.mouseLeftDragStartY = y;
-        this.mw.markerManager.selectedMarker = marker;
+        Mw.instance.markerManager.selectedMarker = marker;
 
         if ((marker != null) && (prevMarker == marker)) {
           // clicked previously selected marker.
@@ -324,14 +315,14 @@ public class MwGui extends GuiScreen {
         this.mc.displayGuiScreen(
                 new MwGuiMarkerDialog(
                         this,
-                        this.mw.markerManager,
+                        Mw.instance.markerManager,
                         marker
                 )
         );
 
       } else if (marker == null) {
         // open new marker dialog
-        String group = this.mw.markerManager.getVisibleGroupName();
+        String group = Mw.instance.markerManager.getVisibleGroupName();
         if (group.equals("none")) {
           group = "group";
         }
@@ -339,9 +330,9 @@ public class MwGui extends GuiScreen {
         int mx, my, mz;
         if (this.isPlayerNearScreenPos(x, y)) {
           // marker at player's locations
-          mx = this.mw.playerXInt;
-          my = this.mw.playerYInt;
-          mz = this.mw.playerZInt;
+          mx = Mw.instance.playerXInt;
+          my = Mw.instance.playerYInt;
+          mz = Mw.instance.playerZInt;
 
         } else {
           // marker at mouse pointer location
@@ -352,19 +343,19 @@ public class MwGui extends GuiScreen {
         this.mc.displayGuiScreen(
                 new MwGuiMarkerDialog(
                         this,
-                        this.mw.markerManager,
+                        Mw.instance.markerManager,
                         "",
                         group,
                         mx, my, mz,
-                        this.mapView.getDimension()
+                        this.mapView.getDimensionID()
                 )
         );
       }
     } else if (button == 2) {
     }
 
-    this.viewXStart = this.mapView.getX();
-    this.viewZStart = this.mapView.getZ();
+    this.viewXCenter = this.mapView.getCenterX();
+    this.viewZCenter = this.mapView.getCenterZ();
     //this.viewSizeStart = this.mapManager.getViewSize();
   }
 
@@ -384,7 +375,7 @@ public class MwGui extends GuiScreen {
   // zoom on mouse direction wheel scroll
   public void mouseDWheelScrolled(int x, int y, int direction) {
     Marker marker = this.getMarkerNearScreenPos(x, y);
-    if ((marker != null) && (marker == this.mw.markerManager.selectedMarker)) {
+    if ((marker != null) && (marker == Mw.instance.markerManager.selectedMarker)) {
       if (direction > 0) {
         marker.colourNext();
       } else {
@@ -393,17 +384,18 @@ public class MwGui extends GuiScreen {
 
     } else if (this.dimensionLabel.posWithin(x, y)) {
       int n = (direction > 0) ? 1 : -1;
-      this.mapView.nextDimension(this.mw.dimensionList, n);
+      this.mapView.setDimensionID(Mw.instance.nextDimension(n));
 
     } else if (this.groupLabel.posWithin(x, y)) {
       int n = (direction > 0) ? 1 : -1;
-      this.mw.markerManager.nextGroup(n);
-      this.mw.markerManager.update();
+      Mw.instance.markerManager.nextGroup(n);
+      Mw.instance.markerManager.update();
     } else if (this.overlayLabel.posWithin(x, y)) {
 
     } else {
       int zF = (direction > 0) ? -1 : 1;
-      this.mapView.zoomToPoint(this.mapView.getZoomLevel() + zF, this.mouseBlockX, this.mouseBlockZ);
+      this.mapView.setCenter(this.mouseBlockX, this.mouseBlockZ);
+      this.mapView.modifyZoom(zF);
     }
   }
 
@@ -505,11 +497,11 @@ public class MwGui extends GuiScreen {
       final double yOffset = (this.mouseLeftDragStartY - mouseY) * this.mapView.getHeight() / this.mapMode.h;
 
       if (this.movingMarker != null) {
-        double scale = this.mapView.getDimensionScaling(this.movingMarker.dimension);
+        double scale = 1.0;
         this.movingMarker.x = this.movingMarkerXStart - (int) (xOffset / scale);
         this.movingMarker.z = this.movingMarkerZStart - (int) (yOffset / scale);
       } else {
-        this.mapView.setViewCentre(this.viewXStart + xOffset, this.viewZStart + yOffset);
+        this.mapView.setCenter(this.viewXCenter + xOffset, this.viewZCenter + yOffset);
       }
     }
 
@@ -537,9 +529,9 @@ public class MwGui extends GuiScreen {
     // draw name of player under mouse cursor
     if (this.isPlayerNearScreenPos(mouseX, mouseY)) {
       this.drawMouseOverHint(mouseX, mouseY, this.mc.thePlayer.getDisplayName(),
-              this.mw.playerXInt,
-              this.mw.playerYInt,
-              this.mw.playerZInt);
+              Mw.instance.playerXInt,
+              Mw.instance.playerYInt,
+              Mw.instance.playerZInt);
     }
 
     // draw status message
@@ -548,9 +540,9 @@ public class MwGui extends GuiScreen {
     // draw labels
     this.helpLabel.draw(menuX, menuY, "[help]");
     this.optionsLabel.drawToRightOf(this.helpLabel, "[options]");
-    String dimString = String.format("[dimension: %d]", this.mapView.getDimension());
+    String dimString = String.format("[dimension: %d]", this.mapView.getDimensionID());
     this.dimensionLabel.drawToRightOf(this.optionsLabel, dimString);
-    String groupString = String.format("[group: %s]", this.mw.markerManager.getVisibleGroupName());
+    String groupString = String.format("[group: %s]", Mw.instance.markerManager.getVisibleGroupName());
     this.groupLabel.drawToRightOf(this.dimensionLabel, groupString);
     String overlayString = String.format("[overlay : %s]", "none");
     this.overlayLabel.drawToRightOf(this.groupLabel, overlayString);

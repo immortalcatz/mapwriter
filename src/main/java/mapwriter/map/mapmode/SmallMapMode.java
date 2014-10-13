@@ -1,9 +1,7 @@
 package mapwriter.map.mapmode;
 
-import mapwriter.forge.MwConfig;
-
 public class SmallMapMode extends MapMode {
-	public SmallMapMode(MwConfig config) {
+	public SmallMapMode() {
 		super("smallMap");
 		
 		this.heightPercent = 30;

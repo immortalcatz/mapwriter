@@ -4,7 +4,7 @@ import java.awt.Point;
 import mapwriter.Config;
 
 import mapwriter.forge.MwConfig;
-import mapwriter.map.MapView;
+import mapwriter.gui.MapView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 
@@ -201,20 +201,20 @@ public class MapMode {
   public Point screenXYtoBlockXZ(MapView mapView, int sx, int sy) {
     double withinMapX = ((double) (sx - this.xTranslation)) / ((double) this.w);
     double withinMapY = ((double) (sy - this.yTranslation)) / ((double) this.h);
-    int bx = (int) Math.floor((mapView.getX() + (withinMapX * mapView.getWidth())));
-    int bz = (int) Math.floor((mapView.getZ() + (withinMapY * mapView.getHeight())));
+    int bx = (int) Math.floor((mapView.getLeft()+ (withinMapX * mapView.getWidth())));
+    int bz = (int) Math.floor((mapView.getTop()+ (withinMapY * mapView.getHeight())));
     return new Point(bx, bz);
   }
 
   public Point.Double blockXZtoScreenXY(MapView mapView, double bX, double bZ) {
-    double xNorm = (bX - mapView.getX()) / mapView.getWidth();
-    double zNorm = (bZ - mapView.getZ()) / mapView.getHeight();
+    double xNorm = (bX - mapView.getLeft()) / mapView.getWidth();
+    double zNorm = (bZ - mapView.getTop()) / mapView.getHeight();
     return new Point.Double(this.w * xNorm, this.h * zNorm);
   }
 
   public Point.Double getClampedScreenXY(MapView mapView, double bX, double bZ) {
-    double xRel = (bX - mapView.getX()) / mapView.getWidth();
-    double zRel = (bZ - mapView.getZ()) / mapView.getHeight();
+    double xRel = (bX - mapView.getLeft()) / mapView.getWidth();
+    double zRel = (bZ - mapView.getTop()) / mapView.getHeight();
     double limit = 0.49;
 
     if (!this.circular) {

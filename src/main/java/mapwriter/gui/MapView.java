@@ -18,10 +18,10 @@ public class MapView {
   protected int left;
   protected int width;
   protected int height;
-  protected float centerX;
-  protected float centerZ;
+  protected double centerX;
+  protected double centerZ;
   protected int zoom;
-  protected float coordLeft, coordRight, coordTop, coordBottom;
+  protected double coordLeft, coordRight, coordTop, coordBottom;
   protected List<Region> regions = null;
   protected boolean requiresUpdate = true;
 
@@ -34,7 +34,7 @@ public class MapView {
       this.coordRight = coordLeft + width;
       this.coordTop = centerZ - height / 2;
       this.coordBottom = coordLeft + height;
-      
+
       final RegionManager regionManager = Mw.instance.getRegionManager(dimensionID);
       regions = regionManager.getAllExistingRegionsInArea(coordLeft, coordTop, coordRight, coordBottom);
       this.requiresUpdate = false;
@@ -45,7 +45,7 @@ public class MapView {
     this.updateView();
     GL11.glPushMatrix();
 
-    GL11.glTranslatef(-coordLeft, -coordTop, -2000.0f); // z is -2000 so that it is drawn above the 3D world, but below GUI
+    GL11.glTranslated(-coordLeft, -coordTop, -2000.0); // z is -2000 so that it is drawn above the 3D world, but below GUI
     for (final Region region : regions) {
       region.draw();
     }
@@ -58,8 +58,10 @@ public class MapView {
   }
 
   public void setDimensionID(final int dimensionID) {
-    this.dimensionID = dimensionID;
-    this.requiresUpdate = true;
+    if (this.dimensionID != dimensionID) {
+      this.dimensionID = dimensionID;
+      this.requiresUpdate = true;
+    }
   }
 
   public int getTop() {
@@ -67,8 +69,10 @@ public class MapView {
   }
 
   public void setTop(final int top) {
-    this.top = top;
-    this.requiresUpdate = true;
+    if (this.top != top) {
+      this.top = top;
+      this.requiresUpdate = true;
+    }
   }
 
   public int getLeft() {
@@ -76,8 +80,10 @@ public class MapView {
   }
 
   public void setLeft(final int left) {
-    this.left = left;
-    this.requiresUpdate = true;
+    if (this.left != left) {
+      this.left = left;
+      this.requiresUpdate = true;
+    }
   }
 
   public int getWidth() {
@@ -85,8 +91,10 @@ public class MapView {
   }
 
   public void setWidth(final int width) {
-    this.width = width;
-    this.requiresUpdate = true;
+    if (this.width != width) {
+      this.width = width;
+      this.requiresUpdate = true;
+    }
   }
 
   public int getHeight() {
@@ -94,26 +102,44 @@ public class MapView {
   }
 
   public void setHeight(final int height) {
-    this.height = height;
-    this.requiresUpdate = true;
+    if (this.height != height) {
+      this.height = height;
+      this.requiresUpdate = true;
+    }
   }
 
-  public float getCenterX() {
+  public double getCenterX() {
     return centerX;
   }
 
-  public void setCenterX(final float centerX) {
-    this.centerX = centerX;
-    this.requiresUpdate = true;
+  public void setCenterX(final double centerX) {
+    if (this.centerX != centerX) {
+      this.centerX = centerX;
+      this.requiresUpdate = true;
+    }
   }
 
-  public float getCenterZ() {
+  public double getCenterZ() {
     return centerZ;
   }
 
-  public void setCenterZ(final float centerZ) {
-    this.centerZ = centerZ;
-    this.requiresUpdate = true;
+  public void setCenterZ(final double centerZ) {
+    if (this.centerZ != centerZ) {
+      this.centerZ = centerZ;
+      this.requiresUpdate = true;
+    }
+  }
+
+  public void setCenter(final double centerX, final double centerZ) {
+    if ((this.centerX != centerX) || (this.centerZ != centerZ)) {
+      this.centerX = centerX;
+      this.centerZ = centerZ;
+      this.requiresUpdate = true;
+    }
+  }
+
+  public void moveCenter(final double moveX, final double moveZ) {
+    this.setCenter(this.getCenterX() + moveX, this.getCenterZ() + moveZ);
   }
 
   public int getZoom() {
@@ -121,8 +147,26 @@ public class MapView {
   }
 
   public void setZoom(final int zoom) {
-    this.zoom = zoom;
-    this.requiresUpdate = true;
+    if (this.centerX != zoom) {
+      this.zoom = zoom;
+      this.requiresUpdate = true;
+    }
+  }
+
+  public void modifyZoom(final int mod) {
+    this.setZoom(this.getZoom() + mod);
+  }
+
+  public boolean isBlockWithin(final double x, final double z) {
+    return ((x >= this.coordLeft) && (x <= this.coordRight)
+            && (z >= this.coordTop) && (z <= this.coordBottom));
+  }
+
+  public boolean isBlockWithin(final double x, final double z, final double radius) {
+    final double distX = Math.abs(this.centerX - x);
+    final double distZ = Math.abs(this.centerZ - z);
+    return ((distX <= width / 2) && (distZ <= height / 2)
+            && (Math.sqrt(distX * distX + distZ * distZ) <= radius));
   }
 
 }

@@ -4,14 +4,14 @@ import java.awt.Point;
 import mapwriter.Config;
 import mapwriter.Mw;
 import mapwriter.Render;
+import mapwriter.gui.MapView;
 import mapwriter.map.mapmode.MapMode;
 import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.opengl.GL11;
 
 public class MapRenderer {
-
-  private final Mw mw;
+ 
   private final MapMode mapMode;
   private final MapView mapView;
   // accessed by the MwGui to check whether the mouse cursor is near the
@@ -24,101 +24,22 @@ public class MapRenderer {
   private final ResourceLocation playerArrowTexture = new ResourceLocation("mapwriter", "textures/map/arrow_player.png");
   private final ResourceLocation northArrowTexture = new ResourceLocation("mapwriter", "textures/map/arrow_north.png");
 
-  public MapRenderer(Mw mw, MapMode mapMode, MapView mapView) {
-    this.mw = mw;
+  public MapRenderer(final MapMode mapMode, final MapView mapView) {
     this.mapMode = mapMode;
     this.mapView = mapView;
   }
 
   private void drawMap() {
-    int regionZoomLevel = Math.max(0, this.mapView.getZoomLevel());
-    double tSize = (double) Config.instance.textureSize;
-    double zoomScale = (double) (1 << regionZoomLevel);
-
-    // if the texture UV coordinates do not line up with the texture pixels then the texture
-    // will look blurry when it is drawn to the screen.
-    // to fix this we round the texture coordinates to the nearest pixel boundary.
-    // this is unnecessary when zoomed in as the texture will be upscaled and look blurry
-    // anyway, so it is disabled in this case.
-    // also the rounding causes the map to noticeably (and unpleasantly) 'snap' to texture
-    // pixel boundaries when zoomed in.
-    double u, v, w, h;
-    if ((!this.mapMode.circular) && (Config.instance.mapPixelSnapEnabled) && (this.mapView.getZoomLevel() >= 0)) {
-      u = (Math.round(this.mapView.getMinX() / zoomScale) / tSize) % 1.0;
-      v = (Math.round(this.mapView.getMinZ() / zoomScale) / tSize) % 1.0;
-      w = Math.round(this.mapView.getWidth() / zoomScale) / tSize;
-      h = Math.round(this.mapView.getHeight() / zoomScale) / tSize;
-    } else {
-      double tSizeInBlocks = tSize * zoomScale;
-      u = (this.mapView.getMinX() / tSizeInBlocks) % 1.0;
-      v = (this.mapView.getMinZ() / tSizeInBlocks) % 1.0;
-      w = (this.mapView.getWidth() / tSizeInBlocks);
-      h = (this.mapView.getHeight() / tSizeInBlocks);
-    }
-
     GL11.glPushMatrix();
 
     if (this.mapMode.rotate) {
-      GL11.glRotated(this.mw.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
+      GL11.glRotated(Mw.instance.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
     }
     if (this.mapMode.circular) {
       Render.setCircularStencil(0, 0, this.mapMode.h / 2.0);
     }
 
-    if ((this.mapView.getUndergroundMode()) && (regionZoomLevel == 0)) {
-      // draw the underground map
-      this.mw.undergroundMapTexture.requestView(this.mapView);
-      // underground map needs to have a black background
-      Render.setColourWithAlphaPercent(0x000000, this.mapMode.alphaPercent);
-      Render.drawRect(this.mapMode.x, this.mapMode.y, this.mapMode.w, this.mapMode.h);
-      Render.setColourWithAlphaPercent(0xffffff, this.mapMode.alphaPercent);
-      this.mw.undergroundMapTexture.bind();
-      Render.drawTexturedRect(
-              this.mapMode.x, this.mapMode.y, this.mapMode.w, this.mapMode.h,
-              u, v, u + w, v + h
-      );
-    } else {
-      // draw the surface map
-      MapViewRequest req = new MapViewRequest(this.mapView);
-      this.mw.mapTexture.requestView(req, Mw.backgroundExecutor, this.mw.regionManager);
-
-      // draw the background texture
-      if (Config.instance.backgroundTextureMode > 0) {
-        double bu1 = 0.0;
-        double bu2 = 1.0;
-        double bv1 = 0.0;
-        double bv2 = 1.0;
-        if (Config.instance.backgroundTextureMode == 2) {
-          // background moves with map if mode is 2
-          double bSize = tSize / 256.0;
-          bu1 = u * bSize;
-          bu2 = (u + w) * bSize;
-          bv1 = v * bSize;
-          bv2 = (v + h) * bSize;
-        }
-        this.mw.mc.renderEngine.bindTexture(this.backgroundTexture);
-        Render.setColourWithAlphaPercent(0xffffff, this.mapMode.alphaPercent);
-        Render.drawTexturedRect(
-                this.mapMode.x, this.mapMode.y, this.mapMode.w, this.mapMode.h,
-                bu1, bv1, bu2, bv2
-        );
-      } else {
-        // mode 0, no background texture
-        Render.setColourWithAlphaPercent(0x000000, this.mapMode.alphaPercent);
-        Render.drawRect(this.mapMode.x, this.mapMode.y, this.mapMode.w, this.mapMode.h);
-      }
-
-      // only draw surface map if the request is loaded (view requests are
-      // loaded by the background thread)
-      if (this.mw.mapTexture.isLoaded(req)) {
-        this.mw.mapTexture.bind();
-        Render.setColourWithAlphaPercent(0xffffff, this.mapMode.alphaPercent);
-        Render.drawTexturedRect(
-                this.mapMode.x, this.mapMode.y, this.mapMode.w, this.mapMode.h,
-                u, v, u + w, v + h
-        );
-      }
-    }
+    Mw.instance.getRegionManager(mapView.getDimensionID());
 
     if (this.mapMode.circular) {
       Render.disableStencil();
@@ -127,35 +48,21 @@ public class MapRenderer {
     GL11.glPopMatrix();
   }
 
-  private void drawBorder() {
-    if (this.mapMode.circular) {
-      this.mw.mc.renderEngine.bindTexture(this.roundMapTexture);
-    } else {
-      this.mw.mc.renderEngine.bindTexture(this.squareMapTexture);
-    }
-    Render.setColour(0xffffffff);
-    Render.drawTexturedRect(
-            this.mapMode.x / 0.75, this.mapMode.y / 0.75,
-            this.mapMode.w / 0.75, this.mapMode.h / 0.75,
-            0.0, 0.0, 1.0, 1.0
-    );
-  }
-
   private void drawPlayerArrow() {
     GL11.glPushMatrix();
-    double scale = this.mapView.getDimensionScaling(this.mw.playerDimension);
-    Point.Double p = this.mapMode.getClampedScreenXY(this.mapView, this.mw.playerX * scale, this.mw.playerZ * scale);
+    double scale = 1.0;
+    Point.Double p = this.mapMode.getClampedScreenXY(this.mapView, Mw.instance.playerX * scale, Mw.instance.playerZ * scale);
     this.playerArrowScreenPos.setLocation(p.x + this.mapMode.xTranslation, p.y + this.mapMode.yTranslation);
 
     // the arrow only needs to be rotated if the map is NOT rotated
     GL11.glTranslated(p.x, p.y, 0.0);
     if (!this.mapMode.rotate) {
-      GL11.glRotated(-this.mw.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
+      GL11.glRotated(-Mw.instance.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
     }
 
     double arrowSize = this.mapMode.playerArrowSize;
     Render.setColour(0xffffffff);
-    this.mw.mc.renderEngine.bindTexture(this.playerArrowTexture);
+    Mw.instance.mc.renderEngine.bindTexture(this.playerArrowTexture);
     Render.drawTexturedRect(
             -arrowSize, -arrowSize, arrowSize * 2, arrowSize * 2,
             0.0, 0.0, 1.0, 1.0
@@ -167,15 +74,15 @@ public class MapRenderer {
     GL11.glPushMatrix();
 
     if (this.mapMode.rotate) {
-      GL11.glRotated(this.mw.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
+      GL11.glRotated(Mw.instance.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
     }
 
     // draw markers
-    this.mw.markerManager.drawMarkers(this.mapMode, this.mapView);
+    Mw.instance.markerManager.drawMarkers(this.mapMode, this.mapView);
 
     // draw player trail
-    if (this.mw.playerTrail.enabled) {
-      this.mw.playerTrail.draw(this.mapMode, this.mapView);
+    if (Mw.instance.playerTrail.enabled) {
+      Mw.instance.playerTrail.draw(this.mapMode, this.mapView);
     }
 
     // draw north arrow
@@ -183,7 +90,7 @@ public class MapRenderer {
       double y = this.mapMode.h / 2.0;
       double arrowSize = this.mapMode.playerArrowSize;
       Render.setColour(0xffffffff);
-      this.mw.mc.renderEngine.bindTexture(this.northArrowTexture);
+      Mw.instance.mc.renderEngine.bindTexture(this.northArrowTexture);
       Render.drawTexturedRect(
               -arrowSize, -y - (arrowSize * 2), arrowSize * 2, arrowSize * 2,
               0.0, 0.0, 1.0, 1.0
@@ -209,9 +116,9 @@ public class MapRenderer {
       if (Config.instance.coordsMode > 0) {
         Render.drawCentredString(0, 0, this.mapMode.textColour,
                 "%d, %d, %d",
-                this.mw.playerXInt,
-                this.mw.playerYInt,
-                this.mw.playerZInt
+                Mw.instance.playerXInt,
+                Mw.instance.playerYInt,
+                Mw.instance.playerZInt
         );
         offset += 12;
       }
@@ -227,8 +134,6 @@ public class MapRenderer {
   public void draw() {
 
     this.mapMode.setScreenRes();
-    this.mapView.setMapWH(this.mapMode);
-    this.mapView.setTextureSize(Config.instance.textureSize);
 
     GL11.glPushMatrix();
     GL11.glLoadIdentity();
@@ -240,12 +145,7 @@ public class MapRenderer {
 
     // draw background, the map texture, and enabled overlays
     this.drawMap();
-
-    if (this.mapMode.borderMode > 0) {
-      this.drawBorder();
-    }
     this.drawIcons();
-
     this.drawCoords();
 
     // some shader mods seem to need depth testing re-enabled

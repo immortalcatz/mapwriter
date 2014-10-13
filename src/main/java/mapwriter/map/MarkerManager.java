@@ -5,6 +5,7 @@ import java.util.List;
 
 import mapwriter.MwUtil;
 import mapwriter.forge.MwConfig;
+import mapwriter.gui.MapView;
 import mapwriter.map.mapmode.MapMode;
 
 public class MarkerManager {
@@ -29,7 +30,7 @@ public class MarkerManager {
     if (config.hasCategory(category)) {
       int markerCount = config.get(category, "markerCount", 0).getInt();
       this.visibleGroupName = config.get(category, "visibleGroup", "").getString();
-MwUtil.log("load %d markers from category %s", markerCount, category);
+      MwUtil.log("load %d markers from category %s", markerCount, category);
 
       if (markerCount > 0) {
         for (int i = 0; i < markerCount; i++) {
@@ -276,7 +277,7 @@ MwUtil.log("load %d markers from category %s", markerCount, category);
   public void drawMarkers(MapMode mapMode, MapView mapView) {
     for (Marker marker : this.visibleMarkerList) {
       // only draw markers that were set in the current dimension
-      if (mapView.getDimension() == marker.dimension) {
+      if (mapView.getDimensionID() == marker.dimension) {
         marker.draw(mapMode, mapView, 0xff000000);
       }
     }

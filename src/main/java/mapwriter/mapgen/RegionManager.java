@@ -30,7 +30,7 @@ public class RegionManager {
     return cachedRegions.computeIfAbsent(regionID, regionGenerator);
   }
 
-  public List<Region> getAllExistingRegionsInArea(final float coordLeft, final float coordTop, final float coordRight, final float coordBottom) {
+  public List<Region> getAllExistingRegionsInArea(final double coordLeft, final double coordTop, final double coordRight, final double coordBottom) {
     final RegionID topLeft = RegionID.byCoordinates(coordLeft, coordTop);
     final RegionID bottomRight = RegionID.byCoordinates(coordRight + 0.5f, coordBottom + 0.5f);
 
@@ -60,6 +60,13 @@ public class RegionManager {
     Mw.backgroundExecutor.execute(regionSaveTask);
   }
 
+  public void dispose() {
+    final ArrayList<Map.Entry<RegionID, Region>> entries = new ArrayList<Map.Entry<RegionID, Region>>(cachedRegions.entrySet());
+    cachedRegions.clear();
+    regionSaveTask.run();
+    entries.forEach(disposeAll);
+  }
+
   //--- Tasks ------------------------------------------------------------------
   final Function<RegionID, Region> regionGenerator = new Function<RegionID, Region>() {
 
@@ -68,6 +75,7 @@ public class RegionManager {
       return Region.fromFile(saveDir, regionID); // this returns a previously saved region or an empty one
     }
   };
+
   final Consumer<Map.Entry<RegionID, Region>> regionSaver = new Consumer<Map.Entry<RegionID, Region>>() {
 
     @Override
@@ -75,6 +83,15 @@ public class RegionManager {
       entry.getValue().save(saveDir);
     }
   };
+
+  final Consumer<Map.Entry<RegionID, Region>> disposeAll = new Consumer<Map.Entry<RegionID, Region>>() {
+
+    @Override
+    public void accept(final Map.Entry<RegionID, Region> entry) {
+      entry.getValue().dispose();
+    }
+  };
+
   final Runnable regionSaveTask = new Runnable() {
 
     @Override

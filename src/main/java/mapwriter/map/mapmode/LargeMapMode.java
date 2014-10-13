@@ -1,9 +1,7 @@
 package mapwriter.map.mapmode;
 
-import mapwriter.forge.MwConfig;
-
 public class LargeMapMode extends MapMode {
-	public LargeMapMode(MwConfig config) {
+	public LargeMapMode() {
 		super("largeMap");
 		
 		this.heightPercent = -1;

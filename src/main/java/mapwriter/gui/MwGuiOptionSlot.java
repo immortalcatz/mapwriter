@@ -13,7 +13,6 @@ public class MwGuiOptionSlot extends GuiSlot {
 
   //private GuiScreen parentScreen;
   private final Minecraft mc;
-  private final Mw mw;
 
   private int miniMapPositionIndex = 0;
   private static final String[] miniMapPositionStringArray = {
@@ -44,7 +43,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Draw coords: " + coordsModeStringArray[Config.instance.coordsMode];
         break;
       case 1:
-        this.buttons[i].displayString = "Circular mode: " + this.mw.miniMap.smallMapMode.circular;
+        this.buttons[i].displayString = "Circular mode: " + Mw.instance.miniMap.smallMapMode.circular;
         break;
       case 2:
         this.buttons[i].displayString = "Texture size: " + Config.instance.configTextureSize;
@@ -53,7 +52,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Texture scaling: " + (Config.instance.linearTextureScalingEnabled ? "linear" : "nearest");
         break;
       case 4:
-        this.buttons[i].displayString = "Trail markers: " + (this.mw.playerTrail.enabled);
+        this.buttons[i].displayString = "Trail markers: " + (Mw.instance.playerTrail.enabled);
         break;
       case 5:
         this.buttons[i].displayString = "Map colours: " + (Config.instance.useSavedBlockColours ? "frozen" : "auto");
@@ -62,7 +61,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Max draw distance: " + Math.round(Math.sqrt(Config.instance.maxChunkSaveDistSq));
         break;
       case 7:
-        this.buttons[i].displayString = "Mini map size: " + this.mw.miniMap.smallMapMode.heightPercent;
+        this.buttons[i].displayString = "Mini map size: " + Mw.instance.miniMap.smallMapMode.heightPercent;
         break;
       case 8:
         this.buttons[i].displayString = "Mini map position: " + miniMapPositionStringArray[this.miniMapPositionIndex];
@@ -77,18 +76,17 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Background mode: " + backgroundModeStringArray[Config.instance.backgroundTextureMode];
         break;
       //case 11:
-      //	this.buttons[i].displayString = "Map Lighting: " + (this.mw.lightingEnabled ? "enabled" : "disabled");
+      //	this.buttons[i].displayString = "Map Lighting: " + (Mw.instance.lightingEnabled ? "enabled" : "disabled");
       //	break;	
       default:
         break;
     }
   }
 
-  public MwGuiOptionSlot(GuiScreen parentScreen, Minecraft mc, Mw mw) {
+  public MwGuiOptionSlot(GuiScreen parentScreen, Minecraft mc) {
     // GuiSlot(minecraft, width, height, top, bottom, slotHeight)
     super(mc, parentScreen.width, parentScreen.height, 16, parentScreen.height - 32, 25);
     //this.parentScreen = parentScreen;
-    this.mw = mw;
     this.mc = mc;
     for (int i = 0; i < this.buttons.length; i++) {
       this.buttons[i] = new GuiButton(300 + i, 0, 0, "");
@@ -111,11 +109,11 @@ public class MwGuiOptionSlot extends GuiSlot {
     switch (i) {
       case 0:
         // toggle coords
-        this.mw.toggleCoords();
+        Mw.instance.toggleCoords();
         break;
       case 1:
         // toggle circular
-        this.mw.miniMap.toggleRotating();
+        Mw.instance.miniMap.toggleRotating();
         break;
       case 2:
         // toggle texture size
@@ -127,11 +125,11 @@ public class MwGuiOptionSlot extends GuiSlot {
       case 3:
         // linear scaling
         Config.instance.linearTextureScalingEnabled = !Config.instance.linearTextureScalingEnabled;
-        //this.mw.undergroundMapTexture.setLinearScaling(this.mw.linearTextureScalingEnabled);
+        //Mw.instance.undergroundMapTexture.setLinearScaling(Mw.instance.linearTextureScalingEnabled);
         break;
       case 4:
         // player trail
-        this.mw.playerTrail.enabled = !this.mw.playerTrail.enabled;
+        Mw.instance.playerTrail.enabled = !Mw.instance.playerTrail.enabled;
         break;
       case 5:
         // map colours
@@ -147,7 +145,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         Config.instance.maxChunkSaveDistSq = d * d;
         break;
       case 7:
-        this.mw.miniMap.smallMapMode.toggleHeightPercent();
+        Mw.instance.miniMap.smallMapMode.toggleHeightPercent();
         break;
       case 8:
         this.miniMapPositionIndex++;
@@ -158,19 +156,19 @@ public class MwGuiOptionSlot extends GuiSlot {
         switch (this.miniMapPositionIndex) {
           case 1:
             // top right position
-            this.mw.miniMap.smallMapMode.setMargins(10, -1, -1, 10);
+            Mw.instance.miniMap.smallMapMode.setMargins(10, -1, -1, 10);
             break;
           case 2:
             // top left position
-            this.mw.miniMap.smallMapMode.setMargins(10, -1, 10, -1);
+            Mw.instance.miniMap.smallMapMode.setMargins(10, -1, 10, -1);
             break;
           case 3:
             // bottom right position
-            this.mw.miniMap.smallMapMode.setMargins(-1, 40, -1, 10);
+            Mw.instance.miniMap.smallMapMode.setMargins(-1, 40, -1, 10);
             break;
           case 4:
             // bottom left position
-            this.mw.miniMap.smallMapMode.setMargins(-1, 40, 10, -1);
+            Mw.instance.miniMap.smallMapMode.setMargins(-1, 40, 10, -1);
             break;
           default:
             break;
@@ -192,7 +190,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         break;
       //case 11:
       //	// lighting
-      //	this.mw.lightingEnabled = !this.mw.lightingEnabled;
+      //	Mw.instance.lightingEnabled = !Mw.instance.lightingEnabled;
       //	break;
       default:
         break;
