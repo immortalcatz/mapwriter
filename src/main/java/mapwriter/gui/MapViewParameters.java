@@ -7,5 +7,4 @@ package mapwriter.gui;
  */
 public class MapViewParameters {
 
-
 }

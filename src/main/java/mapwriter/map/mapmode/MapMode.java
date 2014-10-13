@@ -201,8 +201,8 @@ public class MapMode {
   public Point screenXYtoBlockXZ(MapView mapView, int sx, int sy) {
     double withinMapX = ((double) (sx - this.xTranslation)) / ((double) this.w);
     double withinMapY = ((double) (sy - this.yTranslation)) / ((double) this.h);
-    int bx = (int) Math.floor((mapView.getLeft()+ (withinMapX * mapView.getWidth())));
-    int bz = (int) Math.floor((mapView.getTop()+ (withinMapY * mapView.getHeight())));
+    int bx = (int) Math.floor((mapView.getLeft() + (withinMapX * mapView.getWidth())));
+    int bz = (int) Math.floor((mapView.getTop() + (withinMapY * mapView.getHeight())));
     return new Point(bx, bz);
   }
 

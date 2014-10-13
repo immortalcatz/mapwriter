@@ -279,13 +279,13 @@ public class Render {
 
   public static void setCircularStencil(double x, double y, double r) {
     GL11.glEnable(GL11.GL_DEPTH_TEST);
-		// disable drawing to the color buffer.
+    // disable drawing to the color buffer.
     // circle will only be drawn to depth buffer.
     GL11.glColorMask(false, false, false, false);
     // enable writing to depth buffer
     GL11.glDepthMask(true);
 
-		// Clearing the depth buffer causes problems with shader mods.
+    // Clearing the depth buffer causes problems with shader mods.
     // I guess we just have to hope that the rest of the depth buffer
     // contains z values greater than 2000 at this stage in the frame
     // render.
@@ -293,7 +293,7 @@ public class Render {
     // not specifically requested in the Minecraft LWJGL display setup code.
     // So the stencil buffer is only available on GL implementations that
     // set it up by default.
-		// clear depth buffer to z = 3000.0
+    // clear depth buffer to z = 3000.0
     //GL11.glClearDepth(3000.0);
     //GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
     // always write to depth buffer
@@ -309,7 +309,7 @@ public class Render {
     GL11.glColorMask(true, true, true, true);
     // disable drawing to depth buffer
     GL11.glDepthMask(false);
-		// only draw pixels with z values that are greater
+    // only draw pixels with z values that are greater
     // than the value in the depth buffer.
     // The overlay is drawn at 2000 so this will pass inside
     // the circle (2000 > 1000) but not outside (2000 <= 3000).
@@ -322,7 +322,7 @@ public class Render {
     GL11.glDisable(GL11.GL_DEPTH_TEST);
   }
 
-	// A better implementation of a circular stencil using the stencil buffer
+  // A better implementation of a circular stencil using the stencil buffer
   // rather than the depth buffer can be found below. It works only on GL
   // implementations that attach a stencil buffer by default (e.g. Intel, but
   // not on Nvidia).

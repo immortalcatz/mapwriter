@@ -56,7 +56,7 @@ public class MwForge {
       Mw.instance.onTick();
     }
   }
-  
+
   @SubscribeEvent
   public void onConnected(FMLNetworkEvent.ClientConnectedToServerEvent event) {
     if (!event.isLocal) {
@@ -68,7 +68,7 @@ public class MwForge {
   @SubscribeEvent
   public void onTick(TickEvent.ClientTickEvent event) {
     if (event.phase == TickEvent.Phase.START) {
-        	// run the cleanup code when Mw is loaded and the player becomes null.
+      // run the cleanup code when Mw is loaded and the player becomes null.
       // a bit hacky, but simpler than checking if the connection has closed.
       if ((Mw.instance.initialized) && (Minecraft.getMinecraft().thePlayer == null)) {
         Mw.instance.close();

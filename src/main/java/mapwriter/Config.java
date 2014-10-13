@@ -15,7 +15,6 @@ public class Config {
 
   public boolean linearTextureScalingEnabled = true;
   public int coordsMode = 0;
-  public boolean undergroundMode = false;
   public boolean teleportEnabled = true;
   public String teleportCommand = "tp";
   public int defaultTeleportHeight = 80;
@@ -34,7 +33,6 @@ public class Config {
   public boolean regionFileOutputEnabledMP = true;
   public int backgroundTextureMode = 0;
 
-  
   protected MwConfig configFile;
 
   protected Config() {
@@ -45,7 +43,7 @@ public class Config {
     this.configFile = config;
     this.load();
   }
-  
+
   public MwConfig getConfigFile() {
     return this.configFile;
   }
@@ -63,7 +61,6 @@ public class Config {
     this.chunksPerTick = this.configFile.getOrSetInt(catOptions, "chunksPerTick", this.chunksPerTick, 1, 500);
     this.saveDirOverride = this.configFile.get(catOptions, "saveDirOverride", this.saveDirOverride).getString();
     this.portNumberInWorldNameEnabled = configFile.getOrSetBoolean(catOptions, "portNumberInWorldNameEnabled", this.portNumberInWorldNameEnabled);
-    this.undergroundMode = this.configFile.getOrSetBoolean(catOptions, "undergroundMode", this.undergroundMode);
     this.regionFileOutputEnabledSP = this.configFile.getOrSetBoolean(catOptions, "regionFileOutputEnabledSP", this.regionFileOutputEnabledSP);
     this.regionFileOutputEnabledMP = this.configFile.getOrSetBoolean(catOptions, "regionFileOutputEnabledMP", this.regionFileOutputEnabledMP);
     this.backgroundTextureMode = this.configFile.getOrSetInt(catOptions, "backgroundTextureMode", this.backgroundTextureMode, 0, 1);
@@ -84,7 +81,6 @@ public class Config {
     this.configFile.setBoolean(catOptions, "mapPixelSnapEnabled", this.mapPixelSnapEnabled);
     this.configFile.setInt(catOptions, "maxDeathMarkers", this.maxDeathMarkers);
     this.configFile.setInt(catOptions, "chunksPerTick", this.chunksPerTick);
-    this.configFile.setBoolean(catOptions, "undergroundMode", this.undergroundMode);
     this.configFile.setInt(catOptions, "backgroundTextureMode", this.backgroundTextureMode);
     //this.config.setBoolean(catOptions, "lightingEnabled", this.lightingEnabled);
 

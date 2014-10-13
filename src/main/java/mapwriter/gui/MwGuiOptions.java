@@ -24,7 +24,7 @@ public class MwGuiOptions extends GuiScreen {
   @Override
   protected void actionPerformed(GuiButton button) {
     if (button.id == 200) {
-			// done
+      // done
       // reconfigure texture size
       Mw.instance.setTextureSize();
       this.mc.displayGuiScreen(this.parentScreen);

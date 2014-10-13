@@ -67,7 +67,7 @@ public class Marker {
     Render.drawRect(p.x - halfMSize + 0.5, p.y - halfMSize + 0.5, mSize - 1.0, mSize - 1.0);
   }
 
-	// arraylist.contains was producing unexpected results in some situations
+  // arraylist.contains was producing unexpected results in some situations
   // rather than figure out why i'll just control how two markers are compared
   @Override
   public boolean equals(final Object o) {

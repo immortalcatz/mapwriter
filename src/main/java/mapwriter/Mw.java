@@ -41,8 +41,6 @@ public class Mw {
   public MwConfig worldConfig = null;
 
   // directories
-  private final File configDir;
-  private final File saveDir;
   public File worldDir = null;
   public File imageDir = null;
 
@@ -89,10 +87,6 @@ public class Mw {
     // client only initialization
     // oops, no idea why I was using a ModLoader method to get the Minecraft instance before
     this.mc = Minecraft.getMinecraft();
-
-    // create base save directory
-    this.saveDir = new File(this.mc.mcDataDir, "saves");
-    this.configDir = new File(this.mc.mcDataDir, "config");
 
     this.initialized = false;
   }
@@ -287,7 +281,7 @@ public class Mw {
     this.worldName = this.getWorldName();
 
     // get world and image directories
-    File actualSaveDir = this.saveDir;
+    File actualSaveDir = new File(this.mc.mcDataDir, "saves");
     if (Config.instance.saveDirOverride.length() > 0) {
       File d = new File(Config.instance.saveDirOverride);
       if (d.isDirectory()) {

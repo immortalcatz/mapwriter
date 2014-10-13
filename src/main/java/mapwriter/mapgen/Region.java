@@ -112,7 +112,7 @@ public class Region {
   public void dispose() {
     this.texture.dispose();
   }
-  
+
   public void draw() {
     GL11.glPushMatrix();
     this.translateToTile();

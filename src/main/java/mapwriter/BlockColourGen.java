@@ -3,6 +3,7 @@ package mapwriter;
 // whereas the generated BlockColours object is used only in the background thread.
 // So basically split to make it clear that BlockColourGen and the generated BlockColours
 // must not have any interaction after it is generated.
+
 public class BlockColourGen {
 
 //  private static int getIconMapColour(IIcon icon, Texture terrainTexture) {

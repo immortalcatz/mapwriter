@@ -11,7 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 public class MapRenderer {
- 
+
   private final MapMode mapMode;
   private final MapView mapView;
   // accessed by the MwGui to check whether the mouse cursor is near the
@@ -121,11 +121,6 @@ public class MapRenderer {
                 Mw.instance.playerZInt
         );
         offset += 12;
-      }
-      if (Config.instance.undergroundMode) {
-        Render.drawCentredString(
-                0, offset, this.mapMode.textColour, "underground mode"
-        );
       }
       GL11.glPopMatrix();
     }
