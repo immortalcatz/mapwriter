@@ -17,7 +17,7 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = '2.1710.2'
+version = '3.1710.0'
 group = 'mapwriter'
 archivesBaseName = 'MapWriter'
 
