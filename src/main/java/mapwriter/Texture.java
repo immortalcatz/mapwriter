@@ -19,18 +19,16 @@ public class Texture extends PixelData {
     return result;
   }
 
-  // allocate new texture and fill from IntBuffer
   public Texture(final int width, final int height) {
     this(width, height, -1);
   }
 
-  // create from existing texture
-  public Texture(final int width, final int height, final int id) {
+  protected Texture(final int width, final int height, final int id) {
     super(width, height);
 
     final int maxSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-    if (size > maxSize) {
-      throw new IllegalArgumentException("Texture size is too big. Must be <= " + maxSize + ", but got " + size);
+    if (this.size > maxSize) {
+      throw new IllegalArgumentException("Texture size is too big. Must be <= " + maxSize + ", but got " + this.size);
     }
     this.pixelBuf = MwUtil.newDirectIntBuffer(width * height);
 

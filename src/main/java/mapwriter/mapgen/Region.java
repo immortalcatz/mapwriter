@@ -29,36 +29,6 @@ public class Region {
   public static final int REGION_POSITION_MASK = REGION_SIZE - 1;
   public static final String IMAGE_TYPE = "png";
 
-  public static Region fromFile(final String saveDir, final RegionID regionID) {
-    return fromFile(Paths.get(saveDir, regionID.toFilename()), regionID);
-  }
-
-  public static Region fromFile(final Path filepath, final RegionID regionID) {
-    final Region result = new Region(regionID);
-    if (Files.exists(filepath)) {
-      InputStream in = null;
-      try {
-        in = Files.newInputStream(filepath, StandardOpenOption.READ);
-        final BufferedImage image = ImageIO.read(in);
-        if ((image.getWidth() != REGION_SIZE) || (image.getHeight() != REGION_SIZE)) {
-          Files.delete(filepath); // kill it with fire!
-          throw new IOException("Image data is of wrong size. Expected " + REGION_SIZE + "x" + REGION_SIZE + " but got " + image.getWidth() + "x" + image.getHeight());
-        }
-        result.setRGB(image.getRGB(0, 0, REGION_SIZE, REGION_SIZE, null, 0, REGION_SIZE));
-      } catch (Exception e) {
-        FMLLog.warning("Unable to read map data file '%s': %s", filepath.getFileName().toString(), e.toString());
-      } finally {
-        if (in != null) {
-          try {
-            in.close();
-          } catch (Exception e) {
-          }
-        }
-      }
-    }
-    return result;
-  }
-
   public final RegionID regionID;
   final Texture texture;
   final AtomicBoolean requireTextureUpdate = new AtomicBoolean(true);
@@ -74,15 +44,11 @@ public class Region {
   }
 
   public void updateChunk(final int chunkX, final int chunkZ, final int[] newPixels) {
-    setRGB((chunkX * CHUNK_SIZE) & REGION_POSITION_MASK, (chunkZ * CHUNK_SIZE) & REGION_POSITION_MASK, CHUNK_SIZE, CHUNK_SIZE, newPixels);
+    this.texture.setRGB((chunkX * CHUNK_SIZE) & REGION_POSITION_MASK, (chunkZ * CHUNK_SIZE) & REGION_POSITION_MASK, CHUNK_SIZE, CHUNK_SIZE, newPixels, 0);
   }
 
   public void setRGB(final int[] newPixels) {
     this.texture.setRGB(newPixels);
-  }
-
-  public void setRGB(final int offsetX, final int offsetZ, final int width, final int height, final int[] newPixels) {
-    this.texture.setRGB(offsetX, offsetZ, width, height, newPixels, 0);
   }
 
   public boolean save(final String saveDir) {

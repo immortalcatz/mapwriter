@@ -26,11 +26,16 @@ public class RegionID implements Comparable<RegionID> {
     this.regionZ = regionZ;
     this.x = regionX * Region.REGION_SIZE;
     this.z = regionZ * Region.REGION_SIZE;
-    this.hash = (this.regionX << 16) | this.regionZ;
+    this.hash = ((this.regionX & 0xFFFF) << 16) | (this.regionZ & 0xFFFF);
   }
 
   public String toFilename() {
     return regionX + "." + regionZ + "." + Region.IMAGE_TYPE;
+  }
+
+  @Override
+  public String toString() {
+    return "{" + regionX + ", " + regionZ + "}";
   }
 
   @Override
@@ -47,7 +52,7 @@ public class RegionID implements Comparable<RegionID> {
       return false;
     }
     final RegionID other = (RegionID) obj;
-    return (this.hash == other.hash);
+    return ((this.regionX == other.regionX) && (this.regionZ == other.regionZ));
   }
 
   @Override
@@ -59,5 +64,4 @@ public class RegionID implements Comparable<RegionID> {
       return compareX;
     }
   }
-
 }
