@@ -11,11 +11,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.imageio.ImageIO;
@@ -70,17 +72,20 @@ public class RegionManager {
 
   public RegionManager(final String saveDir) {
     this.saveDir = saveDir;
+
+    Mw.backgroundExecutor.scheduleAtFixedRate(regionSaveTask, 1, 1, TimeUnit.MINUTES);
   }
 
   public void tick() {
-    RegionData regionData;
-    while ((regionData = this.regionsToCreate.pollFirst()) != null) {
+    for (final Iterator<RegionData> it = regionsToCreate.iterator(); it.hasNext();) {
+      final RegionData regionData = it.next();
       final Region newRegion = new Region(regionData.regionID);
       if (regionData.pixels != null) {
         newRegion.setRGB(regionData.pixels);
       }
       this.cachedRegions.putIfAbsent(newRegion.regionID, newRegion);
-      FMLLog.info("Created Region %d, %d", regionData.regionID.regionX, regionData.regionID.regionZ);
+      it.remove();
+      FMLLog.info("Created Region %s", regionData.regionID.toString());
     }
   }
 
@@ -190,7 +195,10 @@ public class RegionManager {
       final ArrayList<Map.Entry<RegionID, Region>> entries = new ArrayList<Map.Entry<RegionID, Region>>(mapEntries);
       mapEntries.removeAll(entries);
 
-      entries.forEach(regionSaver);
+      if (entries.isEmpty() == false) {
+        entries.forEach(regionSaver);
+        FMLLog.info("Map data saved");
+      }
     }
   };
 }

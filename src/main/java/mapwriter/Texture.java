@@ -26,9 +26,9 @@ public class Texture extends PixelData {
   protected Texture(final int width, final int height, final int id) {
     super(width, height);
 
-    final int maxSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-    if (this.size > maxSize) {
-      throw new IllegalArgumentException("Texture size is too big. Must be <= " + maxSize + ", but got " + this.size);
+    final int maxLength = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
+    if ((this.width > maxLength) || (this.height > maxLength)) {
+      throw new IllegalArgumentException("Texture size is too big. Must be <= " + maxLength + "x" + maxLength + ", but got " + this.width + "x" + this.height);
     }
     this.pixelBuf = MwUtil.newDirectIntBuffer(width * height);
 
@@ -41,7 +41,7 @@ public class Texture extends PixelData {
     } else {
       this.id = id;
     }
-    
+
     if (this.id > 0) {
       GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.id);
       GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
