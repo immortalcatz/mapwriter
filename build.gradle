@@ -23,8 +23,8 @@ archivesBaseName = 'MapWriter'
 
 minecraft {
   version = '1.7.10-10.13.1.1222'
-  assetDir = "eclipse/assets"
-  runDir = "eclipse"
+  assetDir = "run/assets"
+  runDir = "run"
 }
 processResources
 {

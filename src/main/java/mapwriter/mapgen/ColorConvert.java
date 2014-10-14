@@ -26,8 +26,8 @@ public class ColorConvert {
 
   public static void reset() {
     final int terrainTextureId = Minecraft.getMinecraft().renderEngine.getTexture(TextureMap.locationBlocksTexture).getGlTextureId();
-    if (terrainTextureId != 0) {
-      terrainTexture = new Texture(terrainTextureId);
+    if (terrainTextureId > 0) {
+      terrainTexture = Texture.fromMemory(terrainTextureId);
       terrainTexture.fetchTextureData();
     } else {
       FMLLog.severe("Unable to get Minecraft terrain texture.");
@@ -40,6 +40,12 @@ public class ColorConvert {
   }
 
   public static int compressBlockIdAndMeta(final int blockID, final int metadata) {
+    if ((metadata < 0) || (metadata > 0xF)) {
+      throw new IllegalArgumentException("Metadata is invalid. Must be 0 <= meta <= 0xF, but got " + metadata);
+    }
+    if ((blockID < 0) || (blockID > 0x0FFFFFFF)) {
+      throw new IllegalArgumentException("Metadata is invalid. Must be 0 <= block <= 0x0FFFFFFF, but got " + blockID);
+    }
     return ((blockID << 0xF) | metadata);
   }
 
