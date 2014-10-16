@@ -20,7 +20,8 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
-import net.minecraftforge.event.world.WorldEvent;
+import mapwriter.mapgen.ColorConvert;
+import net.minecraftforge.client.event.TextureStitchEvent;
 
 @Mod(modid = "MapWriter", name = "MapWriter", version = "2.1710.1")
 public class MwForge {
@@ -50,6 +51,11 @@ public class MwForge {
     proxy.postInit();
   }
 
+  @SubscribeEvent
+  public void texturesStitched(TextureStitchEvent.Post event) {
+    ColorConvert.reset();
+  }
+  
   @SubscribeEvent
   public void renderMap(RenderGameOverlayEvent.Post event) {
     if (event.type == RenderGameOverlayEvent.ElementType.ALL) {

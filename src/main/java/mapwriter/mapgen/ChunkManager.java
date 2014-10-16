@@ -39,14 +39,14 @@ public class ChunkManager {
 
   public static int[] getChunkSurfaceAsPixels(final Chunk chunk) {
     final int[] result = new int[Region.CHUNK_SIZE * Region.CHUNK_SIZE];
-    if (chunk.isEmpty() == false) {
-      int y;
-      for (int x = 0; x < Region.CHUNK_SIZE; ++x) {
-        for (int z = 0; z < Region.CHUNK_SIZE; ++z) {
-          y = chunk.getHeightValue(x, z) - 1; // heightmap is last air block before ground, we want the ground
-          if (y > 0) {
-            result[x + z * Region.CHUNK_SIZE] = ColorConvert.averageBlockColor(chunk.worldObj, x, y, z);
-          }
+    final int x0 = chunk.xPosition * Region.CHUNK_SIZE;
+    final int z0 = chunk.zPosition * Region.CHUNK_SIZE;
+    int y;
+    for (int x = 0; x < Region.CHUNK_SIZE; ++x) {
+      for (int z = 0; z < Region.CHUNK_SIZE; ++z) {
+        y = 255;
+        if (y > 0) {
+          result[x + z * Region.CHUNK_SIZE] = ColorConvert.averageBlockColor(chunk.worldObj, x0 + x, y, z0 + z);
         }
       }
     }

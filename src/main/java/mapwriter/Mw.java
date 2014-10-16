@@ -267,7 +267,7 @@ public class Mw {
   ////////////////////////////////
   // Initialization and Cleanup
   ////////////////////////////////
-  public void load() {
+  protected void load() {
     if ((this.mc.theWorld == null) || (this.mc.thePlayer == null)) {
       MwUtil.log("Mw.load: world or player is null, cannot load yet");
       return;
@@ -310,8 +310,8 @@ public class Mw {
     this.tickCounter = 0;
     this.onPlayerDeathAlreadyFired = false;
 
-    ColorConvert.reset(); // will as well fetch Minecraft block texture, which has to be done from the main thread
-    
+//    ColorConvert.reset(); // will as well fetch Minecraft block texture, which has to be done from the main thread
+
     //this.multiplayer = !this.mc.isIntegratedServerRunning();
     // marker manager only depends on the config being loaded
     this.markerManager = new MarkerManager(this.worldConfig, catMarkers);
@@ -404,8 +404,9 @@ public class Mw {
   public void onTick() {
     if (this.initialized == false) {
       this.load();
+      FMLLog.info("GUITick: initialized");
     }
-    
+
     this.regionManager.tick();
 
     if (this.mc.thePlayer != null) {

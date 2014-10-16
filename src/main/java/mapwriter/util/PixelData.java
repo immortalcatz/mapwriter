@@ -11,6 +11,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class PixelData {
 
+  public static int[] getPixelsFromImage(final BufferedImage image) {
+    return image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+  }
+
   public final int size;
   public final int width;
   public final int height;

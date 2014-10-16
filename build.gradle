@@ -14,7 +14,6 @@ buildscript {
     classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
   }
 }
-
 apply plugin: 'forge'
 
 version = '3.1710.0'
@@ -61,4 +60,8 @@ task deobfJar(type: Jar) {
 
 artifacts {
   archives sourceJar, deobfJar
+}
+
+dependencies {
+  testCompile "junit:junit:4.11"
 }
