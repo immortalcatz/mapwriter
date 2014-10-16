@@ -37,22 +37,6 @@ public class ChunkManager {
 //    FMLLog.info("Removed all chunks");
   }
 
-  public static int[] getChunkSurfaceAsPixels(final Chunk chunk) {
-    final int[] result = new int[Region.CHUNK_SIZE * Region.CHUNK_SIZE];
-    final int x0 = chunk.xPosition * Region.CHUNK_SIZE;
-    final int z0 = chunk.zPosition * Region.CHUNK_SIZE;
-    int y;
-    for (int x = 0; x < Region.CHUNK_SIZE; ++x) {
-      for (int z = 0; z < Region.CHUNK_SIZE; ++z) {
-        y = 255;
-        if (y > 0) {
-          result[x + z * Region.CHUNK_SIZE] = ColorConvert.averageBlockColor(chunk.worldObj, x0 + x, y, z0 + z);
-        }
-      }
-    }
-    return result;
-  }
-
   final Runnable chunkUpdater = new Runnable() {
 
     volatile Iterator<ChunkEntry> iterator = null;
@@ -67,7 +51,7 @@ public class ChunkManager {
           final ChunkEntry next = iterator.next();
 //            FMLLog.info("Updating chunk [%3d, %3d]", next.chunk.xPosition, next.chunk.zPosition);
           if (next.chunk.isEmpty() == false) {
-            Mw.instance.regionManager.updateChunk(next.chunk, getChunkSurfaceAsPixels(next.chunk));
+            Mw.instance.regionManager.updateChunk(next.chunk, ColorConvert.getChunkSurfaceAsPixels(next.chunk));
           }
         }
       } catch (Throwable t) {

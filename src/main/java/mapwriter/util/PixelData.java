@@ -64,8 +64,8 @@ public class PixelData {
     if ((offset < 0) || (offset >= pixels.length)) {
       throw new ArrayIndexOutOfBoundsException("Offset position must be within output size. Expected 0 <= offset < " + pixels.length + ", but got " + offset);
     }
-    if (pixels.length - offset > width * height) {
-      throw new ArrayIndexOutOfBoundsException("Target array size (including offset) must be big enough to hold the requested area. Expected 0 < size{" + (pixels.length - offset) + "} <= " + (width * height) + " but got (length{" + pixels.length + "} - offset{" + offset + "}");
+    if (pixels.length - offset < width * height) {
+      throw new ArrayIndexOutOfBoundsException("Target array size (including offset) must be big enough to hold the requested area. Expected 0 < size{" + (pixels.length - offset) + "} >= " + (width * height) + " but got (length{" + pixels.length + "} - offset{" + offset + "}");
     }
     final int bufferOffset = (y * this.width) + x;
     synchronized (this.pixels) {

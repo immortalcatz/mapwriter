@@ -79,7 +79,7 @@ public class RegionManager {
   public void tick() {
     for (final Iterator<RegionData> it = regionsToCreate.iterator(); it.hasNext();) {
       final RegionData regionData = it.next();
-      final Region newRegion = new Region(regionData.regionID);
+      final Region newRegion = new Region(regionData.regionID); // Regions need to be created in the main thread, as they require the GL object for texture creation
       if (regionData.pixels != null) {
         newRegion.setRGB(regionData.pixels);
       }

@@ -4,8 +4,6 @@ package mapwriter.mapgen;
 
 import cpw.mods.fml.common.FMLLog;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,15 +79,11 @@ public class Region {
 
   public void draw() {
     GL11.glPushMatrix();
-    this.translateToTile();
+    GL11.glTranslatef(regionID.x, regionID.z, 0.0f);
     this.texture.bind();
     Render.drawTexturedRect(0, 0, this.texture.width, this.texture.height);
     this.texture.unbind();
     GL11.glPopMatrix();
-  }
-
-  protected void translateToTile() {
-    GL11.glTranslatef(regionID.x, regionID.z, 0.0f);
   }
 
 }

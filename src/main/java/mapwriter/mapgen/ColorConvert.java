@@ -15,6 +15,7 @@ import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import org.apache.logging.log4j.Level;
 
 /**
@@ -30,6 +31,22 @@ public class ColorConvert {
 
   public static void reset() {
     knownColors.clear();
+  }
+
+  public static int[] getChunkSurfaceAsPixels(final Chunk chunk) {
+    final int[] result = new int[Region.CHUNK_SIZE * Region.CHUNK_SIZE];
+    final int x0 = chunk.xPosition * Region.CHUNK_SIZE;
+    final int z0 = chunk.zPosition * Region.CHUNK_SIZE;
+    int y;
+    for (int x = 0; x < Region.CHUNK_SIZE; ++x) {
+      for (int z = 0; z < Region.CHUNK_SIZE; ++z) {
+        y = 255;
+        if (y > 0) {
+          result[x + (Region.CHUNK_SIZE - z - 1) * Region.CHUNK_SIZE] = averageBlockColor(chunk.worldObj, x0 + x, y, z0 + z); // 0,0 is left-bottom in chunk space, but left-top in pixel space
+        }
+      }
+    }
+    return result;
   }
 
   public static IIcon getBlockTopIcon(final World world, final int x, int y, final int z) {
