@@ -43,46 +43,46 @@ public class ColorConvertTest {
     int result;
 
     try {
-      ColorConvert.calculateAverageColor(pixels);
+      ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
       fail("Calculated average color of null");
     } catch (NullPointerException e) {
       // OK
     }
     pixels = new int[]{0};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0);
     assertEquals(result, ColorConvert.BLACK);
 
     pixels = new int[]{0xFF000000};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0xFF000000);
     assertEquals(result, ColorConvert.BLACK);
 
     pixels = new int[]{0xFFFFFFFF};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0xFFFFFFFF);
     assertEquals(result, 0xFFFFFFFF);
 
     pixels = new int[]{0xFFFFFFFF, 0};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0xFFFFFFFF);
     assertEquals(pixels[1], 0);
     assertEquals(result, 0xFFFFFFFF);
 
     pixels = new int[]{0xFFFFFFFF, 0xFFFFFFFF};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0xFFFFFFFF);
     assertEquals(pixels[1], 0xFFFFFFFF);
     assertEquals(result, 0xFFFFFFFF);
 
     pixels = new int[]{0xFFFFFFFF, 0xFF000000};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0xFFFFFFFF);
     assertEquals(pixels[1], 0xFF000000);
     assertEquals(result, 0xFF7F7F7F);
 
     pixels = new int[]{0xFF000000, 0xFFFFFFFF};
-    result = ColorConvert.calculateAverageColor(pixels);
+    result = ColorConvert.calculateAverageColor(pixels, 0xFFFFFFFF);
     assertEquals(pixels[0], 0xFF000000);
     assertEquals(pixels[1], 0xFFFFFFFF);
     assertEquals(result, 0xFF7F7F7F);

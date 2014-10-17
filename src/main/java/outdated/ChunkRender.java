@@ -1,8 +1,5 @@
 package outdated;
 
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-
 public class ChunkRender {
 //
 //  public static final byte FLAG_UNPROCESSED = 0;
