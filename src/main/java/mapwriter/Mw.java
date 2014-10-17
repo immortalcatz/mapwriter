@@ -22,13 +22,15 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import mapwriter.gui.MapView;
 import mapwriter.mapgen.ChunkManager;
-import mapwriter.mapgen.ColorConvert;
 import mapwriter.mapgen.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Mw {
 
   public static final ScheduledExecutorService backgroundExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
+  public static final Logger log = LogManager.getLogger("MapWriter");
 
   public Minecraft mc = null;
 
@@ -141,10 +143,6 @@ public class Mw {
       newTextureSize <<= 1;
     }
     newTextureSize >>= 1;
-
-    MwUtil.log("GL reported max texture size = %d", maxTextureSize);
-    MwUtil.log("texture size from config = %d", Config.instance.configTextureSize);
-    MwUtil.log("setting map texture size to = %d", newTextureSize);
 
     Config.instance.configTextureSize = newTextureSize;
     if (this.initialized) {
@@ -269,11 +267,11 @@ public class Mw {
   ////////////////////////////////
   protected void load() {
     if ((this.mc.theWorld == null) || (this.mc.thePlayer == null)) {
-      MwUtil.log("Mw.load: world or player is null, cannot load yet");
+      log.info("Mw.load: world or player is null, cannot load yet");
       return;
     }
 
-    MwUtil.log("Mw.load: loading...");
+    log.info("Mw.load: %s loading...", "test");
 
     IntegratedServer server = this.mc.getIntegratedServer();
     this.multiplayer = (server == null);
@@ -286,7 +284,7 @@ public class Mw {
       if (d.isDirectory()) {
         actualSaveDir = d;
       } else {
-        MwUtil.log("error: no such directory %s", Config.instance.saveDirOverride);
+        log.error("Savedir override does not exist: %s" + Config.instance.saveDirOverride);
       }
     }
 
@@ -304,14 +302,13 @@ public class Mw {
       this.imageDir.mkdirs();
     }
     if (!this.imageDir.isDirectory()) {
-      MwUtil.log("Mapwriter: ERROR: could not create images directory '%s'", this.imageDir.getPath());
+      log.error("Could not create image directory '%s'", this.imageDir.getPath());
     }
 
     this.tickCounter = 0;
     this.onPlayerDeathAlreadyFired = false;
 
 //    ColorConvert.reset(); // will as well fetch Minecraft block texture, which has to be done from the main thread
-
     //this.multiplayer = !this.mc.isIntegratedServerRunning();
     // marker manager only depends on the config being loaded
     this.markerManager = new MarkerManager(this.worldConfig, catMarkers);
@@ -349,7 +346,7 @@ public class Mw {
 
   public void close() {
 
-    MwUtil.log("Mw.close: closing...");
+    log.info("Mw.close: closing...");
 
     if (this.initialized) {
       this.initialized = false;

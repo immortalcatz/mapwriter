@@ -5,7 +5,6 @@ import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
 
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
 
 /*
  MwRender contains most of the code for drawing the overlay.
@@ -37,79 +36,6 @@ public class Render {
     GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
   }
 
-  public static int multiplyColours(int c1, int c2) {
-    float c1A = (float) ((c1 >> 24) & 0xff);
-    float c1R = (float) ((c1 >> 16) & 0xff);
-    float c1G = (float) ((c1 >> 8) & 0xff);
-    float c1B = (float) ((c1 >> 0) & 0xff);
-    float c2A = (float) ((c2 >> 24) & 0xff);
-    float c2R = (float) ((c2 >> 16) & 0xff);
-    float c2G = (float) ((c2 >> 8) & 0xff);
-    float c2B = (float) ((c2 >> 0) & 0xff);
-    int r = (int) (c1R * c2R / 255.0f) & 0xff;
-    int g = (int) (c1G * c2G / 255.0f) & 0xff;
-    int b = (int) (c1B * c2B / 255.0f) & 0xff;
-    int a = (int) (c1A * c2A / 255.0f) & 0xff;
-    return (a << 24) | (r << 16) | (g << 8) | b;
-  }
-
-  public static int getAverageOfPixelQuad(int[] pixels, int offset, int scanSize) {
-    int p00 = pixels[offset];
-    int p01 = pixels[offset + 1];
-    int p10 = pixels[offset + scanSize];
-    int p11 = pixels[offset + scanSize + 1];
-
-    // ignore alpha channel
-    int r = ((p00 >> 16) & 0xff) + ((p01 >> 16) & 0xff) + ((p10 >> 16) & 0xff) + ((p11 >> 16) & 0xff);
-    r >>= 2;
-    int g = ((p00 >> 8) & 0xff) + ((p01 >> 8) & 0xff) + ((p10 >> 8) & 0xff) + ((p11 >> 8) & 0xff);
-    g >>= 2;
-    int b = (p00 & 0xff) + (p01 & 0xff) + (p10 & 0xff) + (p11 & 0xff);
-    b >>= 2;
-    return 0xff000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
-  }
-
-  public static int getAverageColourOfArray(int[] pixels) {
-    int count = 0;
-    double totalA = 0.0;
-    double totalR = 0.0;
-    double totalG = 0.0;
-    double totalB = 0.0;
-    for (int pixel : pixels) {
-      double a = (double) ((pixel >> 24) & 0xff);
-      double r = (double) ((pixel >> 16) & 0xff);
-      double g = (double) ((pixel >> 8) & 0xff);
-      double b = (double) ((pixel >> 0) & 0xff);
-
-      totalA += a;
-      totalR += r * a / 255.0;
-      totalG += g * a / 255.0;
-      totalB += b * a / 255.0;
-
-      count++;
-    }
-
-    totalR = totalR * 255.0 / totalA;
-    totalG = totalG * 255.0 / totalA;
-    totalB = totalB * 255.0 / totalA;
-    totalA = totalA / ((double) count);
-
-    return ((((int) (totalA)) & 0xff) << 24)
-            | ((((int) (totalR)) & 0xff) << 16)
-            | ((((int) (totalG)) & 0xff) << 8)
-            | ((((int) (totalB)) & 0xff));
-  }
-
-  public static int adjustPixelBrightness(int colour, int brightness) {
-    int r = ((colour >> 16) & 0xff);
-    int g = ((colour >> 8) & 0xff);
-    int b = ((colour >> 0) & 0xff);
-    r = Math.min(Math.max(0, r + brightness), 0xff);
-    g = Math.min(Math.max(0, g + brightness), 0xff);
-    b = Math.min(Math.max(0, b + brightness), 0xff);
-    return (colour & 0xff000000) | (r << 16) | (g << 8) | (b);
-  }
-
   public static int getTextureWidth() {
     return GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
   }
@@ -120,14 +46,6 @@ public class Render {
 
   public static int getBoundTextureId() {
     return GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-  }
-
-  public static void printBoundTextureInfo(int texture) {
-    int w = getTextureWidth();
-    int h = getTextureHeight();
-    int depth = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL12.GL_TEXTURE_DEPTH);
-    int format = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_INTERNAL_FORMAT);
-    MwUtil.log("texture %d parameters: width=%d, height=%d, depth=%d, format=%08x", texture, w, h, depth, format);
   }
 
   public static int getMaxTextureSize() {
@@ -162,7 +80,7 @@ public class Render {
       tes.draw();
       GL11.glDisable(GL11.GL_BLEND);
     } catch (NullPointerException e) {
-      MwUtil.log("MwRender.drawTexturedRect: null pointer exception");
+      Mw.log.error("MwRender.drawTexturedRect", e);
     }
   }
 

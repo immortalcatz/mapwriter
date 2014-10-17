@@ -2,22 +2,11 @@
  */
 package mapwriter.mapgen;
 
-import cpw.mods.fml.common.FMLLog;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import javax.imageio.ImageIO;
-import mapwriter.util.PixelData;
-import net.minecraft.block.Block;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.IResource;
-import net.minecraft.client.resources.IResourceManager;
-import net.minecraft.util.IIcon;
-import net.minecraft.util.ResourceLocation;
+import mapwriter.util.MinecraftUtil;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
-import org.apache.logging.log4j.Level;
 
 /**
  * @author Two
@@ -26,7 +15,7 @@ public class ColorConvert {
 
   static final int ALPHA_FULL = 0xFF000000;
   static final int BLACK = 0xFF000000;
-  static final int BLOCK_SIDE_TOP = 1; // Minecraft says so
+  static final int TOPO_SMOOTH = ~3;
 
   static final ConcurrentHashMap<BlockColorEntry, Integer> knownColors = new ConcurrentHashMap<BlockColorEntry, Integer>();
 
@@ -39,14 +28,11 @@ public class ColorConvert {
     final int x0 = chunk.xPosition * Region.CHUNK_SIZE;
     final int z0 = chunk.zPosition * Region.CHUNK_SIZE;
     int y, avgColor;
-    float depthMultiplier;
     for (int x = 0; x < Region.CHUNK_SIZE; ++x) {
       for (int z = 0; z < Region.CHUNK_SIZE; ++z) {
         y = chunk.getHeightValue(x, z); // first non-opaque block above ground. Usually air, but can be grass so include that for the looks.
         if (y > 0) {
-          avgColor = averageBlockColor(chunk.worldObj, x0 + x, y, z0 + z);
-          depthMultiplier = Math.max(Math.min(y / 64.0f, 2.0f), 0.1f);
-          avgColor = changeBrightness(avgColor, depthMultiplier);
+          avgColor = getAverageBlockColor(chunk.worldObj, x0 + x, y, z0 + z);
           result[x + (Region.CHUNK_SIZE - z - 1) * Region.CHUNK_SIZE] = avgColor; // 0,0 is left-bottom in chunk space, but left-top in pixel space
         }
       }
@@ -54,30 +40,15 @@ public class ColorConvert {
     return result;
   }
 
-  public static BlockColorEntry getBlockColorEntry(final World world, final int x, int y, final int z) {
-    final Block block = world.getBlock(x, y, z);
-    final int metadata = world.getBlockMetadata(x, y, z);
-    try {
-      final IIcon icon = block.getIcon(BLOCK_SIDE_TOP, metadata);
-      if (icon != null) {
-        final int colorMultiplier = block.colorMultiplier(world, x, y, z);
-        return new BlockColorEntry(icon.getIconName(), colorMultiplier);
-      }
-    } catch (Throwable t) {
-      FMLLog.log(Level.ERROR, t, "Unable to calculate color for block %s at {%d, %d, %d}", block.getUnlocalizedName(), x, y, z);
-    }
-    return null;
-  }
-
-  public static int averageBlockColor(final World world, final int x, int y, final int z) {
+  public static int getAverageBlockColor(final World world, final int x, int y, final int z) {
     BlockColorEntry blockColorEntry = null;
-    while ((y > 0) && ((blockColorEntry = getBlockColorEntry(world, x, y, z)) == null)) {
+    while ((y > 0) && ((blockColorEntry = BlockColorEntry.fromWorld(world, x, y, z)) == null)) { // move down until there is a block with a valid texture
       --y;
     }
-    if (blockColorEntry != null) {
-      return knownColors.computeIfAbsent(blockColorEntry, generateAverageBlockColor);
-    } else {
-//      FMLLog.warning("Unable to find any blocks at %d, %d", x, z);
+    if (blockColorEntry != null) { // if the world is not yet fully loaded, chunks may not yet have any blocks
+      final int averageColor = knownColors.computeIfAbsent(blockColorEntry, generateAverageBlockColor);
+      final float depthMultiplier = Math.max(Math.min((y & TOPO_SMOOTH) / 64.0f, 2.0f), 0.1f);
+      return changeBrightness(averageColor, depthMultiplier); // changing brightness for a topological effect
     }
     return BLACK;
   }
@@ -105,37 +76,6 @@ public class ColorConvert {
       blue = (blue / pixelCount) & 0xFF;
       return (ALPHA_FULL | (red << 16) | (green << 8) | blue);
     }
-  }
-
-  static int[] loadTexture(final String blockTexture) {
-    try {
-      final ResourceLocation resourceLocation = getResourceLocation(blockTexture);
-      final IResourceManager resourceManager = Minecraft.getMinecraft().getResourceManager();
-      final IResource resource = resourceManager.getResource(resourceLocation);
-      final InputStream in = resource.getInputStream();
-      final BufferedImage image = ImageIO.read(in);
-      return PixelData.getPixelsFromImage(image);
-    } catch (Exception e) {
-      FMLLog.log(Level.ERROR, e, "Unable to load texture '%s'", blockTexture);
-    }
-    return null;
-  }
-
-  static ResourceLocation getResourceLocation(final String blockTexture) {
-    String domain = "minecraft";
-    String path = blockTexture;
-    final int domainSeparator = blockTexture.indexOf(':');
-
-    if (domainSeparator >= 0) {
-      path = blockTexture.substring(domainSeparator + 1);
-
-      if (domainSeparator > 1) {
-        domain = blockTexture.substring(0, domainSeparator);
-      }
-    }
-
-    final String resourcePath = "textures/blocks/" + path + ".png";  // base path and PNG are hardcoded in Minecraft
-    return new ResourceLocation(domain.toLowerCase(), resourcePath);
   }
 
   public static int colorMultiply(final int color1, final int color2) {
@@ -168,7 +108,7 @@ public class ColorConvert {
 
     @Override
     public Integer apply(final BlockColorEntry blockColorEntry) {
-      final int[] pixels = loadTexture(blockColorEntry.textureName);
+      final int[] pixels = MinecraftUtil.loadTexture(blockColorEntry.textureName);
       if (pixels != null) {
         return calculateAverageColor(pixels, blockColorEntry.colorMultiplier);
       }

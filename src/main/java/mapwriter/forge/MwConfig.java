@@ -5,6 +5,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import mapwriter.Mw;
 
 import mapwriter.MwUtil;
 import net.minecraftforge.common.config.Configuration;
@@ -42,7 +43,7 @@ public class MwConfig extends Configuration {
           value &= 0xffffffffL;
         }
       } catch (NumberFormatException e) {
-        MwUtil.log("error: could not read colour from config file %s:%s", category, key);
+        Mw.log.warn("error: could not read colour from config file %s:%s", category, key);
         value = -1;
       }
     }

@@ -2,10 +2,33 @@
  */
 package mapwriter.mapgen;
 
+import cpw.mods.fml.common.FMLLog;
+import net.minecraft.block.Block;
+import net.minecraft.util.IIcon;
+import net.minecraft.world.World;
+import org.apache.logging.log4j.Level;
+
 /**
  * @author Two
  */
 public class BlockColorEntry {
+
+  static final int BLOCK_SIDE_TOP = 1; // Minecraft says so
+
+  public static BlockColorEntry fromWorld(final World world, final int x, final int y, final int z) {
+    final Block block = world.getBlock(x, y, z);
+    final int metadata = world.getBlockMetadata(x, y, z);
+    try {
+      final IIcon icon = block.getIcon(BLOCK_SIDE_TOP, metadata); // this will return a default texture for some blocks like flowers, but that is ok
+      if (icon != null) {
+        final int colorMultiplier = block.colorMultiplier(world, x, y, z);
+        return new BlockColorEntry(icon.getIconName(), colorMultiplier);
+      }
+    } catch (Throwable t) {
+      FMLLog.log(Level.ERROR, t, "Unable to calculate color for block %s at {%d, %d, %d}", block.getUnlocalizedName(), x, y, z);
+    }
+    return null;
+  }
 
   static int generateHash(final String textureName, final int colorMultiplier) {
     int hash = 7;

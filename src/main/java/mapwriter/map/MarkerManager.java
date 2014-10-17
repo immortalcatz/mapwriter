@@ -2,6 +2,7 @@ package mapwriter.map;
 
 import java.util.ArrayList;
 import java.util.List;
+import mapwriter.Mw;
 
 import mapwriter.MwUtil;
 import mapwriter.forge.MwConfig;
@@ -30,7 +31,6 @@ public class MarkerManager {
     if (config.hasCategory(category)) {
       int markerCount = config.get(category, "markerCount", 0).getInt();
       this.visibleGroupName = config.get(category, "visibleGroup", "").getString();
-      MwUtil.log("load %d markers from category %s", markerCount, category);
 
       if (markerCount > 0) {
         for (int i = 0; i < markerCount; i++) {
@@ -40,11 +40,11 @@ public class MarkerManager {
           if (marker != null) {
             this.addMarker(marker);
           } else {
-            MwUtil.log("error: could not load " + key + " from config file");
+            Mw.log.warn("Could not load Marker '" + key + "' from config file.");
           }
         }
       }
-      MwUtil.logInfo("Markers loaded");
+      Mw.log.debug("Markers loaded");
     }
 
     this.update();
@@ -60,7 +60,7 @@ public class MarkerManager {
       ++i;
     }
     config.save();
-    MwUtil.logInfo("Markers saved");
+    Mw.log.debug("Markers saved");
   }
 
   public void setVisibleGroupName(final String groupName) {
@@ -114,7 +114,7 @@ public class MarkerManager {
         marker = null;
       }
     } else {
-      MwUtil.log("Marker.stringToMarker: invalid marker '%s'", s);
+      Mw.log.warn("Invalid marker format '%s'", s);
     }
     return marker;
   }

@@ -32,7 +32,7 @@ public class MwForge {
   @SidedProxy(clientSide = "mapwriter.forge.ClientProxy", serverSide = "mapwriter.forge.CommonProxy")
   public static CommonProxy proxy;
 
-  public static Logger logger = LogManager.getLogger("MapWriter");
+  public static final Logger log = LogManager.getLogger("MapWriter");
 
   @EventHandler
   public void preInit(FMLPreInitializationEvent event) {
