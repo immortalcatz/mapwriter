@@ -1,6 +1,6 @@
 /*
  */
-package mapwriter.mapgen;
+package mapwriter.map;
 
 import cpw.mods.fml.common.FMLLog;
 import java.awt.image.BufferedImage;
@@ -42,7 +42,7 @@ public class Region {
   }
 
   public void updateChunk(final int chunkX, final int chunkZ, final int[] newPixels) {
-    this.texture.setRGB(Math.floorMod(chunkX, CHUNKS_IN_REGION) * CHUNK_SIZE, (CHUNKS_IN_REGION - Math.floorMod(chunkZ, CHUNKS_IN_REGION) - 1) * CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, newPixels, 0);
+    this.texture.setRGB(Math.floorMod(chunkX, CHUNKS_IN_REGION) * CHUNK_SIZE, Math.floorMod(-chunkZ, CHUNKS_IN_REGION) * CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE, newPixels, 0);
   }
 
   public void setRGB(final int[] newPixels) {

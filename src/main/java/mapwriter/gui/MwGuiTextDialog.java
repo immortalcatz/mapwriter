@@ -89,10 +89,12 @@ public class MwGuiTextDialog extends GuiScreen {
     return false;
   }
 
+  @Override
   public void initGui() {
     this.newTextField();
   }
 
+  @Override
   public void drawScreen(int mouseX, int mouseY, float f) {
 
     if (this.parentScreen != null) {

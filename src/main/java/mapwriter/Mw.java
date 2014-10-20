@@ -21,8 +21,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import mapwriter.gui.MapView;
+import mapwriter.gui.MiniMap;
 import mapwriter.mapgen.ChunkManager;
-import mapwriter.mapgen.RegionManager;
+import mapwriter.map.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,11 +77,10 @@ public class Mw {
   public final static String blockColourOverridesFileName = "MapWriterBlockColourOverrides.txt";
 
   // instances of components
-  public MiniMap miniMap;
   public MarkerManager markerManager;
   public RegionManager regionManager;
   public ChunkManager chunkManager = new ChunkManager();
-  public Trail playerTrail;
+  public final MiniMap miniMap = new MiniMap();
 
   public static final Mw instance = new Mw();
 
@@ -271,7 +271,7 @@ public class Mw {
       return;
     }
 
-    log.info("Mw.load: %s loading...", "test");
+    log.info("Mw.load: loading...");
 
     IntegratedServer server = this.mc.getIntegratedServer();
     this.multiplayer = (server == null);
@@ -284,7 +284,7 @@ public class Mw {
       if (d.isDirectory()) {
         actualSaveDir = d;
       } else {
-        log.error("Savedir override does not exist: %s" + Config.instance.saveDirOverride);
+        log.error("Savedir override does not exist: " + Config.instance.saveDirOverride);
       }
     }
 
@@ -302,7 +302,7 @@ public class Mw {
       this.imageDir.mkdirs();
     }
     if (!this.imageDir.isDirectory()) {
-      log.error("Could not create image directory '%s'", this.imageDir.getPath());
+      log.error("Could not create image directory: ", this.imageDir.getPath());
     }
 
     this.tickCounter = 0;
@@ -314,22 +314,15 @@ public class Mw {
     this.markerManager = new MarkerManager(this.worldConfig, catMarkers);
     this.markerManager.load();
 
-    this.playerTrail = new Trail("player");
-
     // region manager depends on config, mapTexture, and block colours
     this.regionManager = new RegionManager(this.imageDir.toString());
-    // overlay manager depends on mapTexture
-    this.miniMap = new MiniMap();
-    this.miniMap.view.setDimensionID(this.mc.thePlayer.dimension);
 
     this.chunkManager = new ChunkManager();
 
     this.initialized = true;
 
-    //if (!zoomLevelsExist) {
-    //printBoth("recreating zoom levels");
-    //this.regionManager.recreateAllZoomLevels();
-    //}
+    this.chunkManager.start();
+    this.regionManager.start();
   }
 
   protected void terminateExecutor() {
@@ -350,7 +343,8 @@ public class Mw {
 
     if (this.initialized) {
       this.initialized = false;
-      terminateExecutor();
+      this.chunkManager.stop();
+      this.regionManager.stop();
 
       this.chunkManager.removeAll();
 
@@ -358,15 +352,9 @@ public class Mw {
         regionManager.dispose();
       }
       this.regionManager = null;
-
-      this.playerTrail.close();
-
+      
       this.markerManager.save();
       this.markerManager = null;
-
-      // close overlay
-      this.miniMap.close();
-      this.miniMap = null;
 
       this.saveWorldConfig();
       Config.instance.save();
@@ -387,7 +375,6 @@ public class Mw {
     this.playerDimension = world.provider.dimensionId;
     if (this.initialized) {
       this.addDimension(this.playerDimension);
-      this.miniMap.view.setDimensionID(this.playerDimension);
     }
   }
 
@@ -401,6 +388,7 @@ public class Mw {
   public void onTick() {
     if (this.initialized == false) {
       this.load();
+      chunkManager.start();
       FMLLog.info("GUITick: initialized");
     }
 
@@ -420,18 +408,7 @@ public class Mw {
       } else if (!(this.mc.currentScreen instanceof MwGui)) {
         // if the player is not dead
         this.onPlayerDeathAlreadyFired = false;
-        // if in game (no gui screen) center the minimap on the player and render it.
-        this.miniMap.view.setCenter(this.playerX, this.playerZ);
-        this.miniMap.view.setDimensionID(this.playerDimension);
-        this.miniMap.drawCurrentMap();
       }
-
-      // let the renderEngine know we have changed the bound texture.
-      //this.mc.renderEngine.resetBoundTexture();
-      //if (this.tickCounter % 100 == 0) {
-      //	MwUtil.log("tick %d", this.tickCounter);
-      //}
-      this.playerTrail.onTick();
 
       this.tickCounter++;
     }
@@ -479,9 +456,7 @@ public class Mw {
       //Mw.log("client tick: %s key pressed", kb.keyDescription);
 
       if (kb == MwKeyHandler.keyMapMode) {
-        // map mode toggle
-        this.miniMap.nextOverlayMode(1);
-
+        // toggle map display from minimap to full or back
       } else if (kb == MwKeyHandler.keyMapGui) {
         // open map gui
         this.mc.displayGuiScreen(new MwGui());
@@ -522,10 +497,8 @@ public class Mw {
         }
       } else if (kb == MwKeyHandler.keyZoomIn) {
         // zoom in
-        this.miniMap.view.modifyZoom(-1);
       } else if (kb == MwKeyHandler.keyZoomOut) {
         // zoom out
-        this.miniMap.view.modifyZoom(1);
       } else if (kb == MwKeyHandler.keyUndergroundMode) {
         this.toggleUndergroundMode();
       }

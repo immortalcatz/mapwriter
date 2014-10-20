@@ -3,8 +3,7 @@ package mapwriter.map;
 import java.awt.Point;
 
 import mapwriter.Render;
-import mapwriter.gui.MapView;
-import mapwriter.map.mapmode.MapMode;
+import org.lwjgl.opengl.GL11;
 
 public class Marker {
 
@@ -15,6 +14,7 @@ public class Marker {
   public int z;
   public int dimension;
   public int colour;
+  public int borderColor;
 
   public Point.Double screenPos = new Point.Double(0, 0);
 
@@ -53,30 +53,27 @@ public class Marker {
     this.colour = getCurrentColour();
   }
 
-  public void draw(MapMode mapMode, MapView mapView, int borderColour) {
-    double scale = 1.0;
-    Point.Double p = mapMode.getClampedScreenXY(mapView, this.x * scale, this.z * scale);
-    this.screenPos.setLocation(p.x + mapMode.xTranslation, p.y + mapMode.yTranslation);
-
+  public void draw() {
     // draw a coloured rectangle centered on the calculated (x, y)
-    double mSize = mapMode.markerSize;
-    double halfMSize = mapMode.markerSize / 2.0;
-    Render.setColour(borderColour);
-    Render.drawRect(p.x - halfMSize, p.y - halfMSize, mSize, mSize);
-    Render.setColour(this.colour);
-    Render.drawRect(p.x - halfMSize + 0.5, p.y - halfMSize + 0.5, mSize - 1.0, mSize - 1.0);
+    final double mSize = 16.0;
+    final double halfMSize = mSize / 2.0;
+    GL11.glPushMatrix();
+    GL11.glTranslated(x, z, 0.0);
+    Render.setColor(this.borderColor);
+    Render.drawRect(-halfMSize, -halfMSize, mSize, mSize);
+    Render.setColor(this.colour);
+    Render.drawRect(-halfMSize + 0.5, -halfMSize + 0.5, mSize - 1.0, mSize - 1.0);
+    GL11.glPopMatrix();
   }
 
-  // arraylist.contains was producing unexpected results in some situations
-  // rather than figure out why i'll just control how two markers are compared
   @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
+  public boolean equals(final Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (o instanceof Marker) {
-      Marker m = (Marker) o;
-      return (name.equals(m.name)) && (groupName.equals(m.groupName)) && (x == m.x) && (y == m.y) && (z == m.z) && (dimension == m.dimension);
+    if (obj instanceof Marker) {
+      final Marker other = (Marker) obj;
+      return (name.equals(other.name) && groupName.equals(other.groupName) && (x == other.x) && (y == other.y) && (z == other.z) && (dimension == other.dimension));
     }
     return false;
   }

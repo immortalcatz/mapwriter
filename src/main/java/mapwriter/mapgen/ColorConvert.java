@@ -2,6 +2,7 @@
  */
 package mapwriter.mapgen;
 
+import mapwriter.map.Region;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import mapwriter.util.MinecraftUtil;

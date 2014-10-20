@@ -43,7 +43,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Draw coords: " + coordsModeStringArray[Config.instance.coordsMode];
         break;
       case 1:
-        this.buttons[i].displayString = "Circular mode: " + Mw.instance.miniMap.smallMapMode.circular;
+        this.buttons[i].displayString = "Circular mode: " + Mw.instance.miniMap.isCircular();
         break;
       case 2:
         this.buttons[i].displayString = "Texture size: " + Config.instance.configTextureSize;
@@ -51,9 +51,9 @@ public class MwGuiOptionSlot extends GuiSlot {
       case 3:
         this.buttons[i].displayString = "Texture scaling: " + (Config.instance.linearTextureScalingEnabled ? "linear" : "nearest");
         break;
-      case 4:
-        this.buttons[i].displayString = "Trail markers: " + (Mw.instance.playerTrail.enabled);
-        break;
+//      case 4:
+//        this.buttons[i].displayString = "Trail markers: " + (Mw.instance.playerTrail.enabled);
+//        break;
       case 5:
         this.buttons[i].displayString = "Map colours: " + (Config.instance.useSavedBlockColours ? "frozen" : "auto");
         break;
@@ -61,7 +61,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Max draw distance: " + Math.round(Math.sqrt(Config.instance.maxChunkSaveDistSq));
         break;
       case 7:
-        this.buttons[i].displayString = "Mini map size: " + Mw.instance.miniMap.smallMapMode.heightPercent;
+        this.buttons[i].displayString = "Mini map size: " + Mw.instance.miniMap.getSize();
         break;
       case 8:
         this.buttons[i].displayString = "Mini map position: " + miniMapPositionStringArray[this.miniMapPositionIndex];
@@ -127,10 +127,10 @@ public class MwGuiOptionSlot extends GuiSlot {
         Config.instance.linearTextureScalingEnabled = !Config.instance.linearTextureScalingEnabled;
         //Mw.instance.undergroundMapTexture.setLinearScaling(Mw.instance.linearTextureScalingEnabled);
         break;
-      case 4:
-        // player trail
-        Mw.instance.playerTrail.enabled = !Mw.instance.playerTrail.enabled;
-        break;
+//      case 4:
+//        // player trail
+//        Mw.instance.playerTrail.enabled = !Mw.instance.playerTrail.enabled;
+//        break;
       case 5:
         // map colours
         Config.instance.useSavedBlockColours = !Config.instance.useSavedBlockColours;
@@ -145,7 +145,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         Config.instance.maxChunkSaveDistSq = d * d;
         break;
       case 7:
-        Mw.instance.miniMap.smallMapMode.toggleHeightPercent();
+        Mw.instance.miniMap.mapMode.toggleHeightPercent();
         break;
       case 8:
         this.miniMapPositionIndex++;
@@ -156,19 +156,19 @@ public class MwGuiOptionSlot extends GuiSlot {
         switch (this.miniMapPositionIndex) {
           case 1:
             // top right position
-            Mw.instance.miniMap.smallMapMode.setMargins(10, -1, -1, 10);
+            Mw.instance.miniMap.mapMode.setMargins(10, -1, -1, 10);
             break;
           case 2:
             // top left position
-            Mw.instance.miniMap.smallMapMode.setMargins(10, -1, 10, -1);
+            Mw.instance.miniMap.mapMode.setMargins(10, -1, 10, -1);
             break;
           case 3:
             // bottom right position
-            Mw.instance.miniMap.smallMapMode.setMargins(-1, 40, -1, 10);
+            Mw.instance.miniMap.mapMode.setMargins(-1, 40, -1, 10);
             break;
           case 4:
             // bottom left position
-            Mw.instance.miniMap.smallMapMode.setMargins(-1, 40, 10, -1);
+            Mw.instance.miniMap.mapMode.setMargins(-1, 40, 10, -1);
             break;
           default:
             break;

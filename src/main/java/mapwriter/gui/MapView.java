@@ -4,8 +4,8 @@ package mapwriter.gui;
 
 import java.util.List;
 import mapwriter.Mw;
-import mapwriter.mapgen.Region;
-import mapwriter.mapgen.RegionManager;
+import mapwriter.map.Region;
+import mapwriter.map.RegionManager;
 import org.lwjgl.opengl.GL11;
 
 /**
@@ -20,7 +20,6 @@ public class MapView {
   protected int height;
   protected double centerX;
   protected double centerZ;
-  protected int zoom;
   protected double coordLeft, coordRight, coordTop, coordBottom;
   protected List<Region> regions = null;
   protected boolean requiresUpdate = true;
@@ -140,21 +139,6 @@ public class MapView {
 
   public void moveCenter(final double moveX, final double moveZ) {
     this.setCenter(this.getCenterX() + moveX, this.getCenterZ() + moveZ);
-  }
-
-  public int getZoom() {
-    return zoom;
-  }
-
-  public void setZoom(final int zoom) {
-    if (this.centerX != zoom) {
-      this.zoom = zoom;
-      this.requiresUpdate = true;
-    }
-  }
-
-  public void modifyZoom(final int mod) {
-    this.setZoom(this.getZoom() + mod);
   }
 
   public boolean isBlockWithin(final double x, final double z) {

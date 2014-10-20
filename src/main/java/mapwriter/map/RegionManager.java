@@ -1,6 +1,6 @@
 /*
  */
-package mapwriter.mapgen;
+package mapwriter.map;
 
 import cpw.mods.fml.common.FMLLog;
 import java.awt.image.BufferedImage;
@@ -17,12 +17,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.imageio.ImageIO;
 import mapwriter.Mw;
-import static mapwriter.mapgen.Region.REGION_SIZE;
+import static mapwriter.map.Region.REGION_SIZE;
+import mapwriter.map.RegionManager.RegionData;
 import net.minecraft.world.chunk.Chunk;
 
 /**
@@ -69,11 +71,23 @@ public class RegionManager {
   final ConcurrentHashMap<RegionID, Region> modifiedRegions = new ConcurrentHashMap<RegionID, Region>();
   final ConcurrentSkipListSet<RegionData> regionsToCreate = new ConcurrentSkipListSet<RegionData>();
   final String saveDir;
+  ScheduledFuture<?> scheduledSafeTask = null;
 
   public RegionManager(final String saveDir) {
     this.saveDir = saveDir;
+  }
 
-    Mw.backgroundExecutor.scheduleAtFixedRate(regionSaveTask, 1, 1, TimeUnit.MINUTES);
+  public void start() {
+    if (this.scheduledSafeTask == null) {
+      this.scheduledSafeTask = Mw.backgroundExecutor.scheduleAtFixedRate(regionSaveTask, 1, 1, TimeUnit.MINUTES);
+    }
+  }
+
+  public void stop() {
+    if (this.scheduledSafeTask != null) {
+      this.scheduledSafeTask.cancel(false);
+      this.scheduledSafeTask = null;
+    }
   }
 
   public void tick() {

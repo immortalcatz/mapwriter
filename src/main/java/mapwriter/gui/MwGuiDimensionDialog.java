@@ -19,14 +19,13 @@ public class MwGuiDimensionDialog extends MwGuiTextDialog {
 
   @Override
   public boolean submit() {
-    boolean done = false;
-    int dimension = this.getInputAsInt();
+    int newDimension = this.getInputAsInt();
     if (this.inputValid) {
-      this.mapView.setDimensionID(dimension);
-      Mw.instance.miniMap.view.setDimensionID(dimension);
-      Mw.instance.addDimension(dimension);
-      done = true;
+      this.mapView.setDimensionID(newDimension);
+//      Mw.instance.miniMap.view.setDimensionID(newDimension);
+      Mw.instance.addDimension(newDimension);
+      return true;
     }
-    return done;
+    return false;
   }
 }

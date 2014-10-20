@@ -3,6 +3,7 @@ package mapwriter.mapgen;
 import cpw.mods.fml.common.FMLLog;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import mapwriter.ChunkEntry;
 import mapwriter.Mw;
@@ -16,8 +17,22 @@ public class ChunkManager {
 
   final ConcurrentSkipListSet<ChunkEntry> loadedChunks = new ConcurrentSkipListSet<ChunkEntry>();
 
+  ScheduledFuture<?> updaterTask = null;
+
   public ChunkManager() {
-    Mw.backgroundExecutor.scheduleAtFixedRate(chunkUpdater, 1000, 5, TimeUnit.MILLISECONDS);
+  }
+
+  public void start() {
+    if (updaterTask == null) {
+      updaterTask = Mw.backgroundExecutor.scheduleAtFixedRate(chunkUpdater, 1000, 5, TimeUnit.MILLISECONDS);
+    }
+  }
+
+  public void stop() {
+    if (updaterTask != null) {
+      updaterTask.cancel(false);
+      updaterTask = null;
+    }
   }
 
   public void addChunk(final Chunk chunk) {

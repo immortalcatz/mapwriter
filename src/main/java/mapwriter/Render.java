@@ -21,10 +21,10 @@ public class Render {
   public static final double circleSteps = 30.0;
 
   public static void setColourWithAlphaPercent(int colour, int alphaPercent) {
-    setColour(((((alphaPercent * 0xff) / 100) & 0xff) << 24) | (colour & 0xffffff));
+    setColor(((((alphaPercent * 0xff) / 100) & 0xff) << 24) | (colour & 0xffffff));
   }
 
-  public static void setColour(int colour) {
+  public static void setColor(int colour) {
     GL11.glColor4f(
             (float) ((colour >> 16) & 0xff) / 255.0f,
             (float) ((colour >> 8) & 0xff) / 255.0f,
@@ -218,7 +218,7 @@ public class Render {
     GL11.glDepthFunc(GL11.GL_ALWAYS);
 
     // draw stencil pattern (filled circle at z = 1000.0)
-    Render.setColour(0xffffffff);
+    Render.setColor(0xffffffff);
     Render.zDepth = 1000.0;
     Render.drawCircle(x, y, r);
     Render.zDepth = 0.0;

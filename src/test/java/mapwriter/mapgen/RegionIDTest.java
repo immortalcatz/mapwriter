@@ -2,6 +2,8 @@
  */
 package mapwriter.mapgen;
 
+import mapwriter.map.Region;
+import mapwriter.map.RegionID;
 import java.util.Random;
 import org.junit.After;
 import org.junit.AfterClass;
