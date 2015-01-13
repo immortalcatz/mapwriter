@@ -11,8 +11,18 @@ public class MiniMap extends MapDisplay {
     super(new MapView());
   }
 
+  @Override
+  protected void translateToCenter() {
+    this.centerMapOnPlayer();
+    super.translateToCenter();
+  }
+
+  public void setSize(final int size, final int margin) {
+    this.setSize(size, size, margin);
+  }
+
   public int getSize() {
-    throw new UnsupportedOperationException("Not supported yet."); // TODO: implement
+    return this.position.getWidth(); // witdth and height are the same
   }
 
   public void toggleRotating() {

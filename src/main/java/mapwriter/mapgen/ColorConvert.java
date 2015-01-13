@@ -5,7 +5,7 @@ package mapwriter.mapgen;
 import mapwriter.map.Region;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import mapwriter.util.MinecraftUtil;
+import mapwriter.util.MwUtil;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
@@ -109,7 +109,7 @@ public class ColorConvert {
 
     @Override
     public Integer apply(final BlockColorEntry blockColorEntry) {
-      final int[] pixels = MinecraftUtil.loadTexture(blockColorEntry.textureName);
+      final int[] pixels = MwUtil.loadTexture(blockColorEntry.textureName);
       if (pixels != null) {
         return calculateAverageColor(pixels, blockColorEntry.colorMultiplier);
       }

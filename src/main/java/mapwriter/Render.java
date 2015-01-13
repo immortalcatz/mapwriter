@@ -194,8 +194,8 @@ public class Render {
     int w = fr.getStringWidth(s);
     fr.drawStringWithShadow(s, x - (w / 2), y, colour);
   }
-
-  public static void setCircularStencil(double x, double y, double r) {
+  
+  protected static void stencilBegin() {
     GL11.glEnable(GL11.GL_DEPTH_TEST);
     // disable drawing to the color buffer.
     // circle will only be drawn to depth buffer.
@@ -220,7 +220,9 @@ public class Render {
     // draw stencil pattern (filled circle at z = 1000.0)
     Render.setColor(0xffffffff);
     Render.zDepth = 1000.0;
-    Render.drawCircle(x, y, r);
+  }
+  
+  protected static void stencilEnd() {
     Render.zDepth = 0.0;
 
     // re-enable drawing to colour buffer
@@ -232,6 +234,18 @@ public class Render {
     // The overlay is drawn at 2000 so this will pass inside
     // the circle (2000 > 1000) but not outside (2000 <= 3000).
     GL11.glDepthFunc(GL11.GL_GREATER);
+  }
+
+  public static void setRectangularStencil(final double x, final double y, final double width, final double height) {
+    stencilBegin();
+    Render.drawRect(x, y, width, height);
+    stencilEnd();
+  }
+
+  public static void setCircularStencil(final double x, final double y, final double r) {
+    stencilBegin();
+    Render.drawCircle(x, y, r);
+    stencilEnd();
   }
 
   public static void disableStencil() {

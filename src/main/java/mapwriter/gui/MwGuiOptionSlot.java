@@ -11,17 +11,32 @@ import net.minecraft.util.ResourceLocation;
 
 public class MwGuiOptionSlot extends GuiSlot {
 
+  protected static final int DEFAULT_MARGIN = 10;
+
   //private GuiScreen parentScreen;
   private final Minecraft mc;
 
-  private int miniMapPositionIndex = 0;
-  private static final String[] miniMapPositionStringArray = {
-    "unchanged",
-    "top right",
-    "top left",
-    "bottom right",
-    "bottom left"
-  };
+  protected enum MinimapPosition {
+
+    unchanged, top_right, top_left, bottom_right, bottom_left;
+
+    public MinimapPosition next() {
+      final int resultIndex = this.ordinal() + 1;
+      final MinimapPosition[] values = MinimapPosition.values();
+      if (resultIndex >= values.length) {
+        return values[1];
+      } else {
+        return values[resultIndex];
+      }
+    }
+
+    @Override
+    public String toString() {
+      return (this.name().replaceAll("_", " "));
+    }
+  }
+
+  protected MinimapPosition miniMapPositionIndex = MinimapPosition.unchanged;
   private static final String[] coordsModeStringArray = {
     "disabled",
     "small",
@@ -51,9 +66,9 @@ public class MwGuiOptionSlot extends GuiSlot {
       case 3:
         this.buttons[i].displayString = "Texture scaling: " + (Config.instance.linearTextureScalingEnabled ? "linear" : "nearest");
         break;
-//      case 4:
-//        this.buttons[i].displayString = "Trail markers: " + (Mw.instance.playerTrail.enabled);
-//        break;
+      case 4:
+        this.buttons[i].displayString = "Trail markers: " + false;
+        break;
       case 5:
         this.buttons[i].displayString = "Map colours: " + (Config.instance.useSavedBlockColours ? "frozen" : "auto");
         break;
@@ -64,7 +79,7 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.buttons[i].displayString = "Mini map size: " + Mw.instance.miniMap.getSize();
         break;
       case 8:
-        this.buttons[i].displayString = "Mini map position: " + miniMapPositionStringArray[this.miniMapPositionIndex];
+        this.buttons[i].displayString = "Mini map position: " + this.miniMapPositionIndex.toString();
         break;
       case 9:
         this.buttons[i].displayString = "Map pixel snapping: " + (Config.instance.mapPixelSnapEnabled ? "enabled" : "disabled");
@@ -145,30 +160,22 @@ public class MwGuiOptionSlot extends GuiSlot {
         Config.instance.maxChunkSaveDistSq = d * d;
         break;
       case 7:
-        Mw.instance.miniMap.mapMode.toggleHeightPercent();
+//        Mw.instance.miniMap.mapMode.toggleHeightPercent();
         break;
       case 8:
-        this.miniMapPositionIndex++;
-        if (this.miniMapPositionIndex >= miniMapPositionStringArray.length) {
-          // don't go back to the "unchanged" setting
-          this.miniMapPositionIndex = 1;
-        }
+        this.miniMapPositionIndex = this.miniMapPositionIndex.next();
         switch (this.miniMapPositionIndex) {
-          case 1:
-            // top right position
-            Mw.instance.miniMap.mapMode.setMargins(10, -1, -1, 10);
+          case top_right:
+            Mw.instance.miniMap.setCenter(mc.displayWidth, mc.displayHeight, DEFAULT_MARGIN);
             break;
-          case 2:
-            // top left position
-            Mw.instance.miniMap.mapMode.setMargins(10, -1, 10, -1);
+          case top_left:
+            Mw.instance.miniMap.setCenter(0, mc.displayHeight, DEFAULT_MARGIN);
             break;
-          case 3:
-            // bottom right position
-            Mw.instance.miniMap.mapMode.setMargins(-1, 40, -1, 10);
+          case bottom_right:
+            Mw.instance.miniMap.setCenter(mc.displayWidth, 0, DEFAULT_MARGIN);
             break;
-          case 4:
-            // bottom left position
-            Mw.instance.miniMap.mapMode.setMargins(-1, 40, 10, -1);
+          case bottom_left:
+            Mw.instance.miniMap.setCenter(0, 0, DEFAULT_MARGIN);
             break;
           default:
             break;

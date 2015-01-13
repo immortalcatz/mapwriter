@@ -14,13 +14,11 @@ import org.lwjgl.opengl.GL11;
 public class MapView {
 
   protected int dimensionID;
-  protected int top;
-  protected int left;
   protected int width;
   protected int height;
   protected double centerX;
   protected double centerZ;
-  protected double coordLeft, coordRight, coordTop, coordBottom;
+  protected double worldCoordLeft, worldCoordRight, worldCoordTop, worldCoordBottom;
   protected List<Region> regions = null;
   protected boolean requiresUpdate = true;
 
@@ -29,13 +27,13 @@ public class MapView {
 
   protected void updateView() {
     if (this.requiresUpdate) {
-      this.coordLeft = centerX - width / 2;
-      this.coordRight = coordLeft + width;
-      this.coordTop = centerZ - height / 2;
-      this.coordBottom = coordLeft + height;
+      this.worldCoordLeft = centerX - width / 2;
+      this.worldCoordRight = worldCoordLeft + width;
+      this.worldCoordTop = centerZ - height / 2;
+      this.worldCoordBottom = worldCoordLeft + height;
 
       final RegionManager regionManager = Mw.instance.getRegionManager(dimensionID);
-      regions = regionManager.getAllExistingRegionsInArea(coordLeft, coordTop, coordRight, coordBottom);
+      regions = regionManager.getAllExistingRegionsInArea(worldCoordLeft, worldCoordTop, worldCoordRight, worldCoordBottom);
       this.requiresUpdate = false;
     }
   }
@@ -44,7 +42,7 @@ public class MapView {
     this.updateView();
     GL11.glPushMatrix();
 
-    GL11.glTranslated(-coordLeft, -coordTop, 0.0);
+    GL11.glTranslated(-worldCoordLeft, -worldCoordTop, 0.0);
     for (final Region region : regions) {
       region.draw();
     }
@@ -59,28 +57,6 @@ public class MapView {
   public void setDimensionID(final int dimensionID) {
     if (this.dimensionID != dimensionID) {
       this.dimensionID = dimensionID;
-      this.requiresUpdate = true;
-    }
-  }
-
-  public int getTop() {
-    return top;
-  }
-
-  public void setTop(final int top) {
-    if (this.top != top) {
-      this.top = top;
-      this.requiresUpdate = true;
-    }
-  }
-
-  public int getLeft() {
-    return left;
-  }
-
-  public void setLeft(final int left) {
-    if (this.left != left) {
-      this.left = left;
       this.requiresUpdate = true;
     }
   }
@@ -142,8 +118,8 @@ public class MapView {
   }
 
   public boolean isBlockWithin(final double x, final double z) {
-    return ((x >= this.coordLeft) && (x <= this.coordRight)
-            && (z >= this.coordTop) && (z <= this.coordBottom));
+    return ((x >= this.worldCoordLeft) && (x <= this.worldCoordRight)
+            && (z >= this.worldCoordTop) && (z <= this.worldCoordBottom));
   }
 
   public boolean isBlockWithin(final double x, final double z, final double radius) {

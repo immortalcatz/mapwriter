@@ -52,21 +52,14 @@ public class Mw {
   private boolean onPlayerDeathAlreadyFired = false;
   public boolean initialized = false;
   public boolean multiplayer = false;
-  public long tickCounter = 0;
+  protected long tickCounter = 0;
 
   // list of available dimensions
   public List<Integer> dimensionList = new ArrayList<Integer>();
 
   // player position and heading
-  public double playerX = 0.0;
-  public double playerZ = 0.0;
-  public double playerY = 0.0;
-  public int playerXInt = 0;
-  public int playerYInt = 0;
-  public int playerZInt = 0;
-  public double playerHeading = 0.0;
-  public int playerDimension = 0;
-  public double mapRotationDegrees = 0.0;
+  public final PlayerStatus player = new PlayerStatus();
+  protected double mapRotationDegrees = 0.0;
 
   // constants
   public final static String catWorld = "world";
@@ -152,26 +145,6 @@ public class Mw {
     }
   }
 
-  // update the saved player position and orientation
-  // called every tick
-  public void updatePlayer() {
-    // get player pos
-    this.playerX = (double) this.mc.thePlayer.posX;
-    this.playerY = (double) this.mc.thePlayer.posY;
-    this.playerZ = (double) this.mc.thePlayer.posZ;
-    this.playerXInt = (int) Math.floor(this.playerX);
-    this.playerYInt = (int) Math.floor(this.playerY);
-    this.playerZInt = (int) Math.floor(this.playerZ);
-
-    // rotationYaw of 0 points due north, we want it to point due east instead
-    // so add pi/2 radians (90 degrees)
-    this.playerHeading = Math.toRadians(this.mc.thePlayer.rotationYaw) + (Math.PI / 2.0D);
-    this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180;
-
-    // set by onWorldLoad
-    //this.playerDimension = this.mc.theWorld.provider.dimensionId;
-  }
-
   public void addDimension(int dimension) {
     int i = this.dimensionList.indexOf(dimension);
     if (i < 0) {
@@ -232,7 +205,7 @@ public class Mw {
   public void teleportToMarker(Marker marker) {
     if (Config.instance.teleportCommand.equals("warp")) {
       this.warpTo(marker.name);
-    } else if (marker.dimension == this.playerDimension) {
+    } else if (marker.dimension == this.player.dimensionID) {
       this.teleportTo(marker.x, marker.y, marker.z);
     } else {
       MwUtil.printBoth("cannot teleport to marker in different dimension");
@@ -352,7 +325,7 @@ public class Mw {
         regionManager.dispose();
       }
       this.regionManager = null;
-      
+
       this.markerManager.save();
       this.markerManager = null;
 
@@ -372,9 +345,9 @@ public class Mw {
     //		world.getWorldInfo().getWorldName(),
     //		world.provider.dimensionId);
 
-    this.playerDimension = world.provider.dimensionId;
+    this.player.dimensionID = world.provider.dimensionId;
     if (this.initialized) {
-      this.addDimension(this.playerDimension);
+      this.addDimension(this.player.dimensionID);
     }
   }
 
@@ -396,7 +369,8 @@ public class Mw {
 
     if (this.mc.thePlayer != null) {
 
-      this.updatePlayer();
+      this.player.update();
+      this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180;
 
       // check if the game over screen is being displayed and if so 
       // (thanks to Chrixian for this method of checking when the player is dead)
@@ -410,7 +384,7 @@ public class Mw {
         this.onPlayerDeathAlreadyFired = false;
       }
 
-      this.tickCounter++;
+      ++this.tickCounter;
     }
   }
 
@@ -436,7 +410,8 @@ public class Mw {
   // it's the only option to detect death client side
   public void onPlayerDeath() {
     if (this.initialized && (Config.instance.maxDeathMarkers > 0)) {
-      this.updatePlayer();
+      this.player.update();
+      this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180;
       int deleteCount = this.markerManager.countMarkersInGroup("playerDeaths") - Config.instance.maxDeathMarkers + 1;
       for (int i = 0; i < deleteCount; i++) {
         // delete the first marker found in the group "playerDeaths".
@@ -444,7 +419,7 @@ public class Mw {
         // earliest death marker added.
         this.markerManager.delMarker(null, "playerDeaths");
       }
-      this.markerManager.addMarker(MwUtil.getCurrentDateString(), "playerDeaths", this.playerXInt, this.playerYInt, this.playerZInt, this.playerDimension, 0xffff0000);
+      this.markerManager.addMarker(MwUtil.getCurrentDateString(), "playerDeaths", this.player.xInt, this.player.yInt, this.player.zInt, this.player.dimensionID, 0xffff0000);
       this.markerManager.setVisibleGroupName("playerDeaths");
       this.markerManager.update();
     }
@@ -473,10 +448,7 @@ public class Mw {
                         this.markerManager,
                         "",
                         group,
-                        this.playerXInt,
-                        this.playerYInt,
-                        this.playerZInt,
-                        this.playerDimension
+                        this.player
                 )
         );
 
@@ -488,10 +460,7 @@ public class Mw {
 
       } else if (kb == MwKeyHandler.keyTeleport) {
         // set or remove marker
-        Marker marker = this.markerManager.getNearestMarkerInDirection(
-                this.playerXInt,
-                this.playerZInt,
-                this.playerHeading);
+        Marker marker = this.markerManager.getNearestMarkerInDirection(this.player);
         if (marker != null) {
           this.teleportToMarker(marker);
         }
@@ -517,5 +486,19 @@ public class Mw {
 
   public RegionManager getRegionManager(final int dimensionID) {
     return this.regionManager;
+  }
+
+  /**
+   * @return the tickCounter
+   */
+  public long getTickCounter() {
+    return tickCounter;
+  }
+
+  /**
+   * @return the mapRotationDegrees
+   */
+  public double getMapRotationDegrees() {
+    return mapRotationDegrees;
   }
 }

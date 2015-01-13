@@ -1,6 +1,5 @@
 package mapwriter.gui;
 
-import java.awt.Point;
 
 import mapwriter.Mw;
 import mapwriter.forge.MwKeyHandler;
@@ -73,8 +72,7 @@ public class MwGui extends GuiScreen {
 
   public MwGui() {
     this.mapDisplay = new LargeMap();
-
-    this.mapDisplay.centerOnPlayer();
+    this.mapDisplay.centerMapOnPlayer();
 
     this.helpLabel = new Label();
     this.optionsLabel = new Label();
@@ -87,12 +85,13 @@ public class MwGui extends GuiScreen {
   // is resized
   @Override
   public void initGui() {
+    Mw.log.debug("initGui");
   }
 
   // called when a button is pressed
   @Override
   protected void actionPerformed(GuiButton button) {
-
+    Mw.log.debug("actionPerformed");
   }
 
   public void exitGui() {
@@ -127,8 +126,9 @@ public class MwGui extends GuiScreen {
   }
 
   public boolean isPlayerNearScreenPos(int x, int y) {
-    Point.Double p = this.map.playerArrowScreenPos;
-    return p.distanceSq(x, y) < 9.0;
+//    Point.Double p = this.map.playerArrowScreenPos;
+//    return p.distanceSq(x, y) < 9.0;
+    return false;
   }
 
   public void deleteSelectedMarker() {
@@ -174,7 +174,7 @@ public class MwGui extends GuiScreen {
 
       case Keyboard.KEY_HOME:
         // centre map on player
-        this.mapDisplay.centerOnPlayer();
+        this.mapDisplay.centerMapOnPlayer();
         break;
 
       case Keyboard.KEY_T:
@@ -263,9 +263,9 @@ public class MwGui extends GuiScreen {
         int mx, my, mz;
         if (this.isPlayerNearScreenPos(x, y)) {
           // marker at player's locations
-          mx = Mw.instance.playerXInt;
-          my = Mw.instance.playerYInt;
-          mz = Mw.instance.playerZInt;
+          mx = Mw.instance.player.xInt;
+          my = Mw.instance.player.yInt;
+          mz = Mw.instance.player.zInt;
 
         } else {
           // marker at mouse pointer location
@@ -287,9 +287,9 @@ public class MwGui extends GuiScreen {
     } else if (button == 2) {
     }
 
-    this.mapDisplay.centerOn(PAN_FACTOR, PAN_FACTOR);
-    this.viewXCenter = this.mapDisplay.getCenterX();
-    this.viewZCenter = this.mapDisplay.getCenterZ();
+    this.mapDisplay.centerMapOn(PAN_FACTOR, PAN_FACTOR);
+    this.viewXCenter = this.mapDisplay.getMapCenterX();
+    this.viewZCenter = this.mapDisplay.getMapCenterZ();
     //this.viewSizeStart = this.mapManager.getViewSize();
   }
 
@@ -425,15 +425,15 @@ public class MwGui extends GuiScreen {
     //double zoomFactor = 1.0;
 
     if (this.mouseLeftHeld > 2) {
-      final double xOffset = (this.mouseLeftDragStartX - mouseX) * this.mapDisplay.getWidth() / this.mapDisplay.w;
-      final double yOffset = (this.mouseLeftDragStartY - mouseY) * this.mapDisplay.getHeight() / this.mapDisplay.h;
+      final double xOffset = (this.mouseLeftDragStartX - mouseX);
+      final double yOffset = (this.mouseLeftDragStartY - mouseY);
 
       if (this.movingMarker != null) {
         double scale = 1.0;
         this.movingMarker.x = this.movingMarkerXStart - (int) (xOffset / scale);
         this.movingMarker.z = this.movingMarkerZStart - (int) (yOffset / scale);
       } else {
-        this.mapDisplay.centerOn(this.viewXCenter + xOffset, this.viewZCenter + yOffset);
+        this.mapDisplay.centerMapOn(this.viewXCenter + xOffset, this.viewZCenter + yOffset);
       }
     }
 
@@ -447,9 +447,8 @@ public class MwGui extends GuiScreen {
     // let the renderEngine know we have changed the texture.
     //this.mc.renderEngine.resetBoundTexture();
     // get the block the mouse is currently hovering over
-    Point p = this.mapMode.screenXYtoBlockXZ(this.mapView, mouseX, mouseY);
-    this.mouseBlockX = p.x;
-    this.mouseBlockZ = p.y;
+    this.mouseBlockX = this.mapDisplay.getBlockCoordinateX(mouseX);
+    this.mouseBlockZ = this.mapDisplay.getBlockCoordinateY(mouseY);
     this.mouseBlockY = this.getHeightAtBlockPos(this.mouseBlockX, this.mouseBlockZ);
 
     // draw name of marker under mouse cursor
@@ -461,9 +460,9 @@ public class MwGui extends GuiScreen {
     // draw name of player under mouse cursor
     if (this.isPlayerNearScreenPos(mouseX, mouseY)) {
       this.drawMouseOverHint(mouseX, mouseY, this.mc.thePlayer.getDisplayName(),
-              Mw.instance.playerXInt,
-              Mw.instance.playerYInt,
-              Mw.instance.playerZInt);
+              Mw.instance.player.xInt,
+              Mw.instance.player.yInt,
+              Mw.instance.player.zInt);
     }
 
     // draw status message

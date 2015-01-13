@@ -5,6 +5,7 @@ import java.util.List;
 import mapwriter.Mw;
 
 import mapwriter.MwUtil;
+import mapwriter.PlayerStatus;
 import mapwriter.forge.MwConfig;
 import mapwriter.gui.MapView;
 
@@ -251,6 +252,10 @@ public class MarkerManager {
       }
     }
     return nearestMarker;
+  }
+
+  public Marker getNearestMarkerInDirection(final PlayerStatus player) {
+    return getNearestMarkerInDirection(player.xInt, player.zInt, player.heading);
   }
 
   public Marker getNearestMarkerInDirection(int x, int z, double desiredAngle) {

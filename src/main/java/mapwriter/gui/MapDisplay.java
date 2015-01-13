@@ -4,6 +4,8 @@ package mapwriter.gui;
 
 import mapwriter.Mw;
 import mapwriter.Render;
+import mapwriter.util.MwUtil;
+import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.Rectangle;
 
@@ -13,27 +15,87 @@ import org.lwjgl.util.Rectangle;
 public class MapDisplay {
 
   protected final MapView mapView;
+  protected final Rectangle position;
   protected boolean circular = false;
   protected boolean rotating = false;
   protected int zoomLevel;
-  protected Rectangle position;
 
   public MapDisplay(final MapView mapView) {
     this.mapView = mapView;
+    this.position = new Rectangle(0, 0, 1, 1);
   }
 
-  public void centerOnPlayer() {
-
+  public void centerMapOnPlayer() {
+    this.centerMapOn(Mw.instance.player.x, Mw.instance.player.z);
   }
 
-  public void centerOn(final double x, final double z) {
-
+  public void centerMapOn(final double x, final double z) {
+    mapView.setCenter(z, z);
   }
-  
+
+  public double getMapCenterX() {
+    return mapView.getCenterX();
+  }
+
+  public double getMapCenterZ() {
+    return mapView.getCenterZ();
+  }
+
+  public int getBlockCoordinateX(final int screenX) {
+    return Math.round((screenX - position.getX()) * ((float) mapView.getWidth() / (float) position.getWidth()));
+  }
+
+  public int getBlockCoordinateY(final int screenY) {
+    return Math.round((screenY - position.getY()) * ((float) mapView.getHeight() / (float) position.getHeight()));
+  }
+
+  public void setCenter(final int x, final int y) {
+    this.setCenter(x, y, 0);
+  }
+
+  public void setCenter(final int x, final int y, final int margin) {
+    this.setX(x - position.getWidth() / 2, margin);
+    this.setY(y - position.getHeight() / 2, margin);
+  }
+
+  public int getCenterX() {
+    return position.getX() + position.getWidth() / 2;
+  }
+
+  public int getCenterY() {
+    return position.getY() + position.getHeight() / 2;
+  }
+
+  public void setSize(final int newWidth, final int newHeight, final int margin) {
+    final int centerX = getCenterX();
+    final int centerY = getCenterY();
+    position.setWidth(newWidth);
+    position.setHeight(newHeight);
+    setCenter(centerX, centerY, margin);
+  }
+
+  public int getHeight() {
+    return position.getHeight();
+  }
+
+  public int getWidth() {
+    return position.getWidth();
+  }
+
+  protected void setX(final int x, final int margin) {
+    final int newX = MwUtil.withinBounds(x, margin, Minecraft.getMinecraft().displayWidth - position.getWidth() - margin);
+    position.setX(newX);
+  }
+
+  protected void setY(final int y, final int margin) {
+    final int newY = MwUtil.withinBounds(y, margin, Minecraft.getMinecraft().displayHeight - position.getHeight() - margin);
+    position.setY(newY);
+  }
+
   public void setDimensionID(final int dimensionID) {
     this.mapView.setDimensionID(dimensionID);
   }
-  
+
   public int getDimensionID() {
     return this.mapView.getDimensionID();
   }
@@ -44,7 +106,7 @@ public class MapDisplay {
     GL11.glPushMatrix();
     GL11.glLoadIdentity();
 
-    this.translateToPosition();
+    this.translateToCenter();
 
     // draw background, the map texture, and enabled overlays
     this.drawMap();
@@ -54,23 +116,25 @@ public class MapDisplay {
     GL11.glPopMatrix();
   }
 
-  protected void translateToPosition() {
-    GL11.glTranslated(this.position.getX(), this.position.getY(), -2000.0);
+  protected void translateToCenter() {
+    GL11.glTranslated(this.position.getX() + this.position.getWidth() / 2, this.position.getY() + this.position.getHeight() / 2, -2000.0);
   }
 
   protected void rotate() {
     if (this.isRotating()) {
-      GL11.glRotated(Mw.instance.mapRotationDegrees, 0.0f, 0.0f, 1.0f);
+      GL11.glRotated(Mw.instance.getMapRotationDegrees(), 0.0f, 0.0f, 1.0f);
     }
   }
 
   protected void setStencil(final boolean enabled) {
-    if (this.isCircular()) {
-      if (enabled) {
+    if (enabled) {
+      if (this.isCircular()) {
         Render.setCircularStencil(0, 0, this.position.getWidth() / 2.0);
       } else {
-        Render.disableStencil();
+        Render.setRectangularStencil(-this.position.getWidth() / 2, -this.position.getHeight() / 2, this.position.getWidth(), this.position.getHeight());
       }
+    } else {
+      Render.disableStencil();
     }
   }
 

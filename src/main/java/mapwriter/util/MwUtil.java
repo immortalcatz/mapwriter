@@ -15,7 +15,23 @@ import org.apache.logging.log4j.Level;
 /**
  * @author Two
  */
-public class MinecraftUtil {
+public class MwUtil {
+
+  public static double withinBounds(final double d, final double min, final double max) {
+    return Math.max(Math.min(d, max), min);
+  }
+
+  public static float withinBounds(final float f, final float min, final float max) {
+    return Math.max(Math.min(f, max), min);
+  }
+
+  public static long withinBounds(final long l, final long min, final long max) {
+    return Math.max(Math.min(l, max), min);
+  }
+
+  public static int withinBounds(final int i, final int min, final int max) {
+    return Math.max(Math.min(i, max), min);
+  }
 
   public static int[] loadTexture(final String blockTexture) {
     try {

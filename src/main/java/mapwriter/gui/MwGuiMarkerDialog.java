@@ -5,6 +5,7 @@ import mapwriter.map.MarkerManager;
 import net.minecraft.client.gui.GuiScreen;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import mapwriter.PlayerStatus;
 
 @SideOnly(Side.CLIENT)
 public class MwGuiMarkerDialog extends MwGuiTextDialog {
@@ -29,6 +30,9 @@ public class MwGuiMarkerDialog extends MwGuiTextDialog {
     this.markerZ = z;
     this.editingMarker = null;
     this.dimension = dimension;
+  }
+  public MwGuiMarkerDialog(GuiScreen parentScreen, MarkerManager markerManager, String markerName, String markerGroup, final PlayerStatus player) {
+    this(parentScreen, markerManager, markerName, markerGroup, player.xInt, player.yInt, player.zInt, player.dimensionID);
   }
 
   public MwGuiMarkerDialog(GuiScreen parentScreen, MarkerManager markerManager, Marker editingMarker) {
