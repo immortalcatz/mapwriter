@@ -33,9 +33,9 @@ public class Config {
   public boolean regionFileOutputEnabledSP = true;
   public boolean regionFileOutputEnabledMP = true;
   public int backgroundTextureMode = 0;
-  public int mapMargin = 4;
-  public int miniMapSize = 300;
-  public MapAnchor miniMapAnchor = MapAnchor.center;
+  public int mapMarginPercent = 1;
+  public int miniMapSizePercent = 25;
+  public MapAnchor miniMapAnchor = MapAnchor.topRight;
 
   protected MwConfig configFile;
 

@@ -2,12 +2,9 @@
  */
 package mapwriter.gui;
 
-import mapwriter.Config;
 import mapwriter.Mw;
 import mapwriter.Render;
 import mapwriter.util.MwUtil;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.EntityRenderer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.Rectangle;
 
@@ -18,14 +15,17 @@ public class MapDisplay {
 
   protected final AreaMap areaMap;
   protected final Rectangle position = new Rectangle(0, 0, 1, 1);
+  protected int widthPercent, heightPercent, marginPercent;
   protected boolean circular = false;
   protected boolean rotating = false;
   protected int zoomLevel = 0;
   protected MapAnchor mapAnchor = MapAnchor.center;
-  protected int margin = 0;
 
   public MapDisplay(final AreaMap areaMap) {
     this.areaMap = areaMap;
+    this.widthPercent = 30;
+    this.heightPercent = 30;
+    this.marginPercent = 1;
   }
 
   public void centerMapOnPlayer() {
@@ -52,10 +52,9 @@ public class MapDisplay {
     return Math.round((screenY - position.getY()) * ((float) areaMap.getHeight() / (float) position.getHeight()));
   }
 
-  public void setMapAnchor(final MapAnchor newMapAnchor) {
+  public void setAnchor(final MapAnchor newMapAnchor) {
     if (newMapAnchor != mapAnchor) {
       this.mapAnchor = newMapAnchor;
-      this.updateRelativePosition();
     }
   }
 
@@ -63,58 +62,45 @@ public class MapDisplay {
     return this.mapAnchor;
   }
 
-  public void updateRelativePosition() {
-    final int screenWidth = Minecraft.getMinecraft().displayWidth;
-    final int screenHeight = Minecraft.getMinecraft().displayHeight;
-
+  public void updateRelativePosition(final int screenWidth, final int screenHeight) {
     switch (this.mapAnchor) {
       case topLeft:
-        this.setCenter(0, screenHeight);
+        this.setCenter(0, 0, screenWidth, screenHeight); // MC uses top-left coordinate system for GUI drawing
         break;
       case topRight:
-        this.setCenter(screenWidth, screenHeight);
+        this.setCenter(1, 0, screenWidth, screenHeight);
         break;
       case bottomLeft:
-        this.setCenter(0, 0);
+        this.setCenter(0, 1, screenWidth, screenHeight);
         break;
       case bottomRight:
-        this.setCenter(screenWidth, 0);
+        this.setCenter(1, 1, screenWidth, screenHeight);
         break;
       case center:
-        this.setCenter(0, 0);
+        this.setCenter(0.5, 0.5, screenWidth, screenHeight);
         break;
     }
   }
 
-  public void setCenter(final int x, final int y) {
-    this.setCenter(x, y, this.margin);
-  }
+  protected void setCenter(final double x, final double y, final int screenWidth, final int screenHeight) {
+    final int adjustSize = Math.min(screenWidth, screenHeight);
+    final int newMargin = adjustSize * this.marginPercent / 100;
+    final int newWidth = adjustSize * this.widthPercent / 100;
+    final int newHeight = adjustSize * this.heightPercent / 100;
+    
+    final int newX = MwUtil.withinBounds((int) (screenWidth * x), newMargin, screenWidth - newWidth - newMargin);
+    final int newY = MwUtil.withinBounds((int) (screenHeight * y), newMargin, screenHeight - newHeight - newMargin);
 
-  public void setCenter(final int x, final int y, final int margin) {
-    this.margin = margin;
-    this.setX(x - position.getWidth() / 2);
-    this.setY(y - position.getHeight() / 2);
-  }
-
-  public int getCenterX() {
-    return position.getX() + position.getWidth() / 2;
-  }
-
-  public int getCenterY() {
-    return position.getY() + position.getHeight() / 2;
-  }
-
-  public void setSize(final int newWidth, final int newHeight, final int margin) {
-    if ((position.getWidth() != newWidth) || (position.getHeight() != newHeight) || (this.margin != margin)) {
-      this.margin = margin;
-      final int centerX = getCenterX();
-      final int centerY = getCenterY();
-      position.setWidth(newWidth);
-      position.setHeight(newHeight);
-      setCenter(centerX, centerY, margin);
-
+    if ((newWidth != position.getWidth()) || (newHeight != position.getHeight()) || (newX != position.getX()) || (newY != position.getY())) {
+      position.setBounds(newX, newY, newWidth, newHeight);
       this.updateAreaMapSize();
     }
+  }
+
+  public void setPercentualDimension(final int width, final int height, final int margin) {
+    this.widthPercent = width;
+    this.heightPercent = height;
+    this.marginPercent = margin;
   }
 
   public int getHeight() {
@@ -125,16 +111,6 @@ public class MapDisplay {
     return position.getWidth();
   }
 
-  protected void setX(final int x) {
-    final int newX = MwUtil.withinBounds(x, margin, Minecraft.getMinecraft().displayWidth - position.getWidth() - this.margin);
-    position.setX(newX);
-  }
-
-  protected void setY(final int y) {
-    final int newY = MwUtil.withinBounds(y, margin, Minecraft.getMinecraft().displayHeight - position.getHeight() - this.margin);
-    position.setY(newY);
-  }
-
   public void setDimensionID(final int dimensionID) {
     this.areaMap.setDimensionID(dimensionID);
   }
@@ -143,9 +119,9 @@ public class MapDisplay {
     return this.areaMap.getDimensionID();
   }
 
-  public void draw() {
+  public void draw(final int screenWidth, final int screenHeight) {
     GL11.glPushMatrix();
-    this.updateRelativePosition();
+    this.updateRelativePosition(screenWidth, screenHeight);
     this.translateToCenter();
     // draw background, the map texture, and enabled overlays
     this.drawMap();
@@ -156,7 +132,7 @@ public class MapDisplay {
   }
 
   protected void translateToCenter() {
-//    GL11.glTranslated(this.position.getX() + this.position.getWidth() / 2, this.position.getY() + this.position.getHeight() / 2, -2000.0);
+    GL11.glTranslated(this.position.getX() + this.position.getWidth() / 2, this.position.getY() + this.position.getHeight() / 2, 0.0);
   }
 
   protected void rotate() {
@@ -181,10 +157,10 @@ public class MapDisplay {
     GL11.glPushMatrix();
 
 //    this.rotate();
-//    this.setStencil(true);
+    this.setStencil(true);
     areaMap.renderMap();
 
-//    this.setStencil(false);
+    this.setStencil(false);
     GL11.glPopMatrix();
   }
 

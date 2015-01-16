@@ -164,16 +164,16 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.miniMapPositionIndex = this.miniMapPositionIndex.next();
         switch (this.miniMapPositionIndex) {
           case top_right:
-            Mw.instance.miniMap.setCenter(mc.displayWidth, mc.displayHeight, Config.instance.mapMargin);
+            Mw.instance.miniMap.setAnchor(MapAnchor.topRight);
             break;
           case top_left:
-            Mw.instance.miniMap.setCenter(0, mc.displayHeight, Config.instance.mapMargin);
+            Mw.instance.miniMap.setAnchor(MapAnchor.topLeft);
             break;
           case bottom_right:
-            Mw.instance.miniMap.setCenter(mc.displayWidth, 0, Config.instance.mapMargin);
+            Mw.instance.miniMap.setAnchor(MapAnchor.bottomRight);
             break;
           case bottom_left:
-            Mw.instance.miniMap.setCenter(0, 0, Config.instance.mapMargin);
+            Mw.instance.miniMap.setAnchor(MapAnchor.bottomLeft);
             break;
           default:
             break;

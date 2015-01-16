@@ -72,6 +72,7 @@ public class MwGui extends GuiScreen {
 
   public MwGui() {
     this.mapDisplay = new LargeMap();
+    this.mapDisplay.setAnchor(MapAnchor.center);
     this.mapDisplay.centerMapOnPlayer();
 
     this.helpLabel = new Label();
@@ -442,9 +443,8 @@ public class MwGui extends GuiScreen {
     }
 
     // draw the map
-    this.mapDisplay.setSize(this.width, this.height, 4);
-    this.mapDisplay.setCenter(this.width / 2, this.height / 2);
-    this.mapDisplay.draw();
+    this.mapDisplay.setPercentualDimension(this.width, this.height, 4);
+    this.mapDisplay.draw(this.width, this.height);
 
     // let the renderEngine know we have changed the texture.
     //this.mc.renderEngine.resetBoundTexture();

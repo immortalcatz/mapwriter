@@ -19,7 +19,7 @@ public class MiniMap extends MapDisplay {
   }
 
   public void setSize(final int size, final int margin) {
-    this.setSize(size, size, margin);
+    this.setPercentualDimension(size, size, margin);
   }
 
   public int getSize() {

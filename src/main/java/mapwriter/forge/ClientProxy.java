@@ -97,7 +97,7 @@ public class ClientProxy extends CommonProxy {
   @SubscribeEvent
   public void renderGameOverlay(final RenderGameOverlayEvent.Post event) {
     if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS) {
-      Mw.instance.renderMiniMap();
+      Mw.instance.renderMiniMap(event.resolution);
     }
   }
 

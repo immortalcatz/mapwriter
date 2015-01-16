@@ -25,6 +25,7 @@ import mapwriter.gui.MiniMap;
 import mapwriter.mapgen.ChunkManager;
 import mapwriter.map.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
+import net.minecraft.client.gui.ScaledResolution;
 
 public class Mw {
 
@@ -264,8 +265,8 @@ public class Mw {
 
     this.tickCounter = 0;
     this.onPlayerDeathAlreadyFired = false;
-    this.miniMap.setSize(Config.instance.miniMapSize, Config.instance.mapMargin);
-    this.miniMap.setMapAnchor(Config.instance.miniMapAnchor);
+    this.miniMap.setSize(Config.instance.miniMapSizePercent, Config.instance.mapMarginPercent);
+    this.miniMap.setAnchor(Config.instance.miniMapAnchor);
 
 //    ColorConvert.reset(); // will as well fetch Minecraft block texture, which has to be done from the main thread
     //this.multiplayer = !this.mc.isIntegratedServerRunning();
@@ -348,11 +349,11 @@ public class Mw {
     }
   }
 
-  public void renderMiniMap() {
+  public void renderMiniMap(final ScaledResolution scaledResolution) {
     this.player.update();
     this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180; // convert from MC rotation to north
 
-    this.miniMap.draw();
+    this.miniMap.draw(scaledResolution.getScaledWidth(), scaledResolution.getScaledHeight());
   }
 
   public void onPostRenderTick() {
