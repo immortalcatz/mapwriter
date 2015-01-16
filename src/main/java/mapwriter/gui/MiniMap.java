@@ -8,7 +8,8 @@ package mapwriter.gui;
 public class MiniMap extends MapDisplay {
 
   public MiniMap() {
-    super(new MapView());
+    super(new AreaMap());
+    this.mapAnchor = MapAnchor.topRight;
   }
 
   @Override

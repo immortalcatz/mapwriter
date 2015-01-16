@@ -8,7 +8,8 @@ package mapwriter.gui;
 public class LargeMap extends MapDisplay {
 
   public LargeMap() {
-    super(new MapView());
+    super(new AreaMap());
+    this.mapAnchor = MapAnchor.center;
   }
 
 }

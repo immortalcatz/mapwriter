@@ -2,10 +2,12 @@
  */
 package mapwriter.gui;
 
+import mapwriter.Config;
 import mapwriter.Mw;
 import mapwriter.Render;
 import mapwriter.util.MwUtil;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.EntityRenderer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.Rectangle;
 
@@ -14,15 +16,16 @@ import org.lwjgl.util.Rectangle;
  */
 public class MapDisplay {
 
-  protected final MapView mapView;
-  protected final Rectangle position;
+  protected final AreaMap areaMap;
+  protected final Rectangle position = new Rectangle(0, 0, 1, 1);
   protected boolean circular = false;
   protected boolean rotating = false;
-  protected int zoomLevel;
+  protected int zoomLevel = 0;
+  protected MapAnchor mapAnchor = MapAnchor.center;
+  protected int margin = 0;
 
-  public MapDisplay(final MapView mapView) {
-    this.mapView = mapView;
-    this.position = new Rectangle(0, 0, 1, 1);
+  public MapDisplay(final AreaMap areaMap) {
+    this.areaMap = areaMap;
   }
 
   public void centerMapOnPlayer() {
@@ -30,32 +33,67 @@ public class MapDisplay {
   }
 
   public void centerMapOn(final double x, final double z) {
-    mapView.setCenter(z, z);
+    areaMap.setCenter(x, z);
   }
 
   public double getMapCenterX() {
-    return mapView.getCenterX();
+    return areaMap.getCenterX();
   }
 
   public double getMapCenterZ() {
-    return mapView.getCenterZ();
+    return areaMap.getCenterZ();
   }
 
   public int getBlockCoordinateX(final int screenX) {
-    return Math.round((screenX - position.getX()) * ((float) mapView.getWidth() / (float) position.getWidth()));
+    return Math.round((screenX - position.getX()) * ((float) areaMap.getWidth() / (float) position.getWidth()));
   }
 
   public int getBlockCoordinateY(final int screenY) {
-    return Math.round((screenY - position.getY()) * ((float) mapView.getHeight() / (float) position.getHeight()));
+    return Math.round((screenY - position.getY()) * ((float) areaMap.getHeight() / (float) position.getHeight()));
+  }
+
+  public void setMapAnchor(final MapAnchor newMapAnchor) {
+    if (newMapAnchor != mapAnchor) {
+      this.mapAnchor = newMapAnchor;
+      this.updateRelativePosition();
+    }
+  }
+
+  public MapAnchor getMapAnchor() {
+    return this.mapAnchor;
+  }
+
+  public void updateRelativePosition() {
+    final int screenWidth = Minecraft.getMinecraft().displayWidth;
+    final int screenHeight = Minecraft.getMinecraft().displayHeight;
+
+    switch (this.mapAnchor) {
+      case topLeft:
+        this.setCenter(0, screenHeight);
+        break;
+      case topRight:
+        this.setCenter(screenWidth, screenHeight);
+        break;
+      case bottomLeft:
+        this.setCenter(0, 0);
+        break;
+      case bottomRight:
+        this.setCenter(screenWidth, 0);
+        break;
+      case center:
+        this.setCenter(0, 0);
+        break;
+    }
   }
 
   public void setCenter(final int x, final int y) {
-    this.setCenter(x, y, 0);
+    this.setCenter(x, y, this.margin);
   }
 
   public void setCenter(final int x, final int y, final int margin) {
-    this.setX(x - position.getWidth() / 2, margin);
-    this.setY(y - position.getHeight() / 2, margin);
+    this.margin = margin;
+    this.setX(x - position.getWidth() / 2);
+    this.setY(y - position.getHeight() / 2);
   }
 
   public int getCenterX() {
@@ -67,11 +105,16 @@ public class MapDisplay {
   }
 
   public void setSize(final int newWidth, final int newHeight, final int margin) {
-    final int centerX = getCenterX();
-    final int centerY = getCenterY();
-    position.setWidth(newWidth);
-    position.setHeight(newHeight);
-    setCenter(centerX, centerY, margin);
+    if ((position.getWidth() != newWidth) || (position.getHeight() != newHeight) || (this.margin != margin)) {
+      this.margin = margin;
+      final int centerX = getCenterX();
+      final int centerY = getCenterY();
+      position.setWidth(newWidth);
+      position.setHeight(newHeight);
+      setCenter(centerX, centerY, margin);
+
+      this.updateAreaMapSize();
+    }
   }
 
   public int getHeight() {
@@ -82,32 +125,28 @@ public class MapDisplay {
     return position.getWidth();
   }
 
-  protected void setX(final int x, final int margin) {
-    final int newX = MwUtil.withinBounds(x, margin, Minecraft.getMinecraft().displayWidth - position.getWidth() - margin);
+  protected void setX(final int x) {
+    final int newX = MwUtil.withinBounds(x, margin, Minecraft.getMinecraft().displayWidth - position.getWidth() - this.margin);
     position.setX(newX);
   }
 
-  protected void setY(final int y, final int margin) {
-    final int newY = MwUtil.withinBounds(y, margin, Minecraft.getMinecraft().displayHeight - position.getHeight() - margin);
+  protected void setY(final int y) {
+    final int newY = MwUtil.withinBounds(y, margin, Minecraft.getMinecraft().displayHeight - position.getHeight() - this.margin);
     position.setY(newY);
   }
 
   public void setDimensionID(final int dimensionID) {
-    this.mapView.setDimensionID(dimensionID);
+    this.areaMap.setDimensionID(dimensionID);
   }
 
   public int getDimensionID() {
-    return this.mapView.getDimensionID();
+    return this.areaMap.getDimensionID();
   }
 
   public void draw() {
-//    this.mapDisplay.setScreenRes();
-
     GL11.glPushMatrix();
-    GL11.glLoadIdentity();
-
+    this.updateRelativePosition();
     this.translateToCenter();
-
     // draw background, the map texture, and enabled overlays
     this.drawMap();
     this.drawMarkers();
@@ -117,7 +156,7 @@ public class MapDisplay {
   }
 
   protected void translateToCenter() {
-    GL11.glTranslated(this.position.getX() + this.position.getWidth() / 2, this.position.getY() + this.position.getHeight() / 2, -2000.0);
+//    GL11.glTranslated(this.position.getX() + this.position.getWidth() / 2, this.position.getY() + this.position.getHeight() / 2, -2000.0);
   }
 
   protected void rotate() {
@@ -141,13 +180,11 @@ public class MapDisplay {
   protected void drawMap() {
     GL11.glPushMatrix();
 
-    this.rotate();
-    this.setStencil(true);
+//    this.rotate();
+//    this.setStencil(true);
+    areaMap.renderMap();
 
-    mapView.renderMap();
-
-    this.setStencil(false);
-
+//    this.setStencil(false);
     GL11.glPopMatrix();
   }
 
@@ -256,7 +293,15 @@ public class MapDisplay {
   }
 
   public void setZoomLevel(final int zoomLevel) {
-    this.zoomLevel = zoomLevel;
+    if (this.zoomLevel != zoomLevel) {
+      this.zoomLevel = zoomLevel;
+      this.updateAreaMapSize();
+    }
+  }
+
+  protected void updateAreaMapSize() {
+    this.areaMap.setWidth(this.getWidth() * (zoomLevel + 1));
+    this.areaMap.setHeight(this.getHeight() * (zoomLevel + 1));
   }
 
   public void modifyZoomLevel(final int amount) {

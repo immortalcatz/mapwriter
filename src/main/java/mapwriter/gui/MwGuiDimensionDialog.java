@@ -8,12 +8,12 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class MwGuiDimensionDialog extends MwGuiTextDialog {
 
-  final MapView mapView;
+  final AreaMap areaMap;
   final int dimension;
 
-  public MwGuiDimensionDialog(GuiScreen parentScreen, MapView mapView, int dimension) {
+  public MwGuiDimensionDialog(GuiScreen parentScreen, AreaMap areaMap, int dimension) {
     super(parentScreen, "Set dimension to:", "" + dimension, "invalid dimension");
-    this.mapView = mapView;
+    this.areaMap = areaMap;
     this.dimension = dimension;
   }
 
@@ -21,7 +21,7 @@ public class MwGuiDimensionDialog extends MwGuiTextDialog {
   public boolean submit() {
     int newDimension = this.getInputAsInt();
     if (this.inputValid) {
-      this.mapView.setDimensionID(newDimension);
+      this.areaMap.setDimensionID(newDimension);
 //      Mw.instance.miniMap.view.setDimensionID(newDimension);
       Mw.instance.addDimension(newDimension);
       return true;

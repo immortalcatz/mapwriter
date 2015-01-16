@@ -2,7 +2,6 @@
  */
 package mapwriter.map;
 
-import cpw.mods.fml.common.FMLLog;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +22,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.imageio.ImageIO;
 import mapwriter.Mw;
+import mapwriter.forge.MapWriter;
 import static mapwriter.map.Region.REGION_SIZE;
 import mapwriter.map.RegionManager.RegionData;
 import net.minecraft.world.chunk.Chunk;
@@ -90,16 +90,18 @@ public class RegionManager {
     }
   }
 
-  public void tick() {
-    for (final Iterator<RegionData> it = regionsToCreate.iterator(); it.hasNext();) {
-      final RegionData regionData = it.next();
-      final Region newRegion = new Region(regionData.regionID); // Regions need to be created in the main thread, as they require the GL object for texture creation
-      if (regionData.pixels != null) {
-        newRegion.setRGB(regionData.pixels);
+  public void updateRegionTextureData() {
+    if (regionsToCreate.isEmpty() == false) {
+      for (final Iterator<RegionData> it = regionsToCreate.iterator(); it.hasNext();) {
+        final RegionData regionData = it.next();
+        final Region newRegion = new Region(regionData.regionID); // Regions need to be created in the main thread, as they require the GL object for texture creation
+        if (regionData.pixels != null) {
+          newRegion.setRGB(regionData.pixels);
+        }
+        this.cachedRegions.putIfAbsent(newRegion.regionID, newRegion);
+        it.remove();
+        MapWriter.log.info("Created Region %s", regionData.regionID.toString());
       }
-      this.cachedRegions.putIfAbsent(newRegion.regionID, newRegion);
-      it.remove();
-      FMLLog.info("Created Region %s", regionData.regionID.toString());
     }
   }
 
@@ -110,12 +112,16 @@ public class RegionManager {
   public List<Region> getAllExistingRegionsInArea(final double coordLeft, final double coordTop, final double coordRight, final double coordBottom) {
     final RegionID topLeft = RegionID.byCoordinates(coordLeft, coordTop);
     final RegionID bottomRight = RegionID.byCoordinates(coordRight + 0.5f, coordBottom + 0.5f);
+    final int minX = Math.min(topLeft.regionX, bottomRight.regionX);
+    final int maxX = Math.max(topLeft.regionX, bottomRight.regionX);
+    final int minZ = Math.min(topLeft.regionZ, bottomRight.regionZ);
+    final int maxZ = Math.max(topLeft.regionZ, bottomRight.regionZ);
 
     final ArrayList<Region> result = new ArrayList<Region>();
 
     Region region;
-    for (int regionX = topLeft.regionX; regionX <= bottomRight.regionX; ++regionX) {
-      for (int regionZ = topLeft.regionZ; regionZ <= bottomRight.regionZ; ++regionZ) {
+    for (int regionX = minX; regionX <= maxX; ++regionX) {
+      for (int regionZ = minZ; regionZ <= maxZ; ++regionZ) {
         region = cachedRegions.get(new RegionID(regionX, regionZ));
         if (region != null) {
           result.add(region);
@@ -158,7 +164,7 @@ public class RegionManager {
         }
         return image.getRGB(0, 0, REGION_SIZE, REGION_SIZE, null, 0, REGION_SIZE);
       } catch (Exception e) {
-        FMLLog.warning("Unable to read map data file '%s': %s", filepath.getFileName().toString(), e.toString());
+        MapWriter.log.warn("Unable to read map data file '%s': %s", filepath.getFileName().toString(), e.toString());
       } finally {
         if (in != null) {
           try {
@@ -211,7 +217,7 @@ public class RegionManager {
 
       if (entries.isEmpty() == false) {
         entries.forEach(regionSaver);
-        FMLLog.info("Map data saved");
+        MapWriter.log.info("Map data saved");
       }
     }
   };

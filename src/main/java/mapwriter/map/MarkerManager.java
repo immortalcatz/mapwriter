@@ -6,8 +6,8 @@ import mapwriter.Mw;
 
 import mapwriter.MwUtil;
 import mapwriter.PlayerStatus;
+import mapwriter.forge.MapWriter;
 import mapwriter.forge.MwConfig;
-import mapwriter.gui.MapView;
 
 public class MarkerManager {
 
@@ -40,11 +40,11 @@ public class MarkerManager {
           if (marker != null) {
             this.addMarker(marker);
           } else {
-            Mw.log.warn("Could not load Marker '" + key + "' from config file.");
+            MapWriter.log.warn("Could not load Marker '" + key + "' from config file.");
           }
         }
       }
-      Mw.log.debug("Markers loaded");
+      MapWriter.log.debug("Markers loaded");
     }
 
     this.update();
@@ -60,7 +60,7 @@ public class MarkerManager {
       ++i;
     }
     config.save();
-    Mw.log.debug("Markers saved");
+    MapWriter.log.debug("Markers saved");
   }
 
   public void setVisibleGroupName(final String groupName) {
@@ -114,7 +114,7 @@ public class MarkerManager {
         marker = null;
       }
     } else {
-      Mw.log.warn("Invalid marker format: " + s);
+      MapWriter.log.warn("Invalid marker format: " + s);
     }
     return marker;
   }

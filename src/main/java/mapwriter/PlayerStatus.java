@@ -20,7 +20,7 @@ public class PlayerStatus {
 
   public void update() {
     final Minecraft mc = Minecraft.getMinecraft();
-    this.setPosition(mc.thePlayer.posX, mc.thePlayer.posX, mc.thePlayer.posX);
+    this.setPosition(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ);
 
     // rotationYaw of 0 points to north, we want it to point to east instead
     // so add pi/2 radians (90 degrees)

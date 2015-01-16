@@ -37,13 +37,13 @@ public class ChunkManager {
 
   public void addChunk(final Chunk chunk) {
     if (this.loadedChunks.add(new ChunkEntry(chunk))) {
-//      FMLLog.info("Added chunk [%3d, %3d]", chunk.xPosition, chunk.zPosition);
+//      MapWriter.log.info("Added chunk [%3d, %3d]", chunk.xPosition, chunk.zPosition);
     }
   }
 
   public void removeChunk(final Chunk chunk) {
     if (this.loadedChunks.remove(new ChunkEntry(chunk))) {
-//      FMLLog.info("Removed chunk [%3d, %3d]", chunk.xPosition, chunk.zPosition);
+//      MapWriter.log.info("Removed chunk [%3d, %3d]", chunk.xPosition, chunk.zPosition);
     }
   }
 
@@ -64,7 +64,7 @@ public class ChunkManager {
         }
         if (iterator.hasNext()) {
           final ChunkEntry next = iterator.next();
-//            FMLLog.info("Updating chunk [%3d, %3d]", next.chunk.xPosition, next.chunk.zPosition);
+//          MapWriter.log.info("Updating chunk [%3d, %3d]", next.chunk.xPosition, next.chunk.zPosition);
           if (next.chunk.isEmpty() == false) {
             Mw.instance.regionManager.updateChunk(next.chunk, ColorConvert.getChunkSurfaceAsPixels(next.chunk));
           }

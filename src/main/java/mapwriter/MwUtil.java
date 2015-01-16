@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
+import mapwriter.forge.MapWriter;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
@@ -79,7 +80,7 @@ public class MwUtil {
     if (thePlayer != null) {
       thePlayer.addChatMessage(new ChatComponentText(msg));
     }
-    Mw.log.info(msg);
+    MapWriter.log.info(msg);
   }
 
   public static File getDimensionDir(File worldDir, int dimension) {

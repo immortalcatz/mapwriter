@@ -9,12 +9,12 @@ import mapwriter.Config;
 @SideOnly(Side.CLIENT)
 public class MwGuiTeleportDialog extends MwGuiTextDialog {
 
-  final MapView mapView;
+  final AreaMap areaMap;
   final int teleportX, teleportZ;
 
-  public MwGuiTeleportDialog(GuiScreen parentScreen, MapView mapView, int x, int y, int z) {
+  public MwGuiTeleportDialog(GuiScreen parentScreen, AreaMap areaMap, int x, int y, int z) {
     super(parentScreen, "Teleport Height:", "" + y, "invalid height");
-    this.mapView = mapView;
+    this.areaMap = areaMap;
     this.teleportX = x;
     this.teleportZ = z;
     this.backToGameOnSubmit = true;
@@ -27,7 +27,7 @@ public class MwGuiTeleportDialog extends MwGuiTextDialog {
     if (this.inputValid) {
       height = Math.min(Math.max(0, height), 255);
       Config.instance.defaultTeleportHeight = height;
-      Mw.instance.teleportToMapPos(this.mapView, this.teleportX, height, this.teleportZ);
+      Mw.instance.teleportToMapPos(this.areaMap, this.teleportX, height, this.teleportZ);
       done = true;
     }
     return done;

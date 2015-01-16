@@ -2,8 +2,6 @@
  */
 package mapwriter.mapgen;
 
-import net.minecraft.util.IIcon;
-import net.minecraft.world.World;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

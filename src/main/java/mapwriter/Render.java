@@ -1,5 +1,6 @@
 package mapwriter;
 
+import mapwriter.forge.MapWriter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.Tessellator;
@@ -67,10 +68,11 @@ public class Render {
 
   // draw rectangle with texture UV coordinates specified (so only part of the texture fills the rectangle).
   public static void drawTexturedRect(double x, double y, double w, double h, double u1, double v1, double u2, double v2) {
-    try {
-      GL11.glEnable(GL11.GL_TEXTURE_2D);
-      GL11.glEnable(GL11.GL_BLEND);
-      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+    try {      
+//      GL11.glEnable(GL11.GL_TEXTURE_2D);
+//      GL11.glEnable(GL11.GL_BLEND);
+      GL11.glDisable(GL11.GL_LIGHTING);
+//      GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
       Tessellator tes = Tessellator.instance;
       tes.startDrawingQuads();
       tes.addVertexWithUV(x + w, y, zDepth, u2, v1);
@@ -78,9 +80,9 @@ public class Render {
       tes.addVertexWithUV(x, y + h, zDepth, u1, v2);
       tes.addVertexWithUV(x + w, y + h, zDepth, u2, v2);
       tes.draw();
-      GL11.glDisable(GL11.GL_BLEND);
+//      GL11.glDisable(GL11.GL_BLEND);
     } catch (NullPointerException e) {
-      Mw.log.error("MwRender.drawTexturedRect", e);
+      MapWriter.log.error("MwRender.drawTexturedRect", e);
     }
   }
 

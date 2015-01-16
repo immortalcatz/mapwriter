@@ -1,6 +1,5 @@
 package mapwriter;
 
-import cpw.mods.fml.common.FMLLog;
 import mapwriter.forge.MwConfig;
 import mapwriter.forge.MwKeyHandler;
 import mapwriter.gui.MwGui;
@@ -20,19 +19,16 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import mapwriter.gui.MapView;
+import mapwriter.forge.MapWriter;
+import mapwriter.gui.AreaMap;
 import mapwriter.gui.MiniMap;
 import mapwriter.mapgen.ChunkManager;
 import mapwriter.map.RegionManager;
 import mapwriter.util.PriorityThreadFactory;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class Mw {
 
   public static final ScheduledExecutorService backgroundExecutor = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new PriorityThreadFactory(Thread.MIN_PRIORITY));
-  public static final Logger log = LogManager.getLogger("MapWriter");
-
   public Minecraft mc = null;
 
   // server information
@@ -50,7 +46,6 @@ public class Mw {
   //public boolean lightingEnabled = false;
   // flags and counters
   private boolean onPlayerDeathAlreadyFired = false;
-  public boolean initialized = false;
   public boolean multiplayer = false;
   protected long tickCounter = 0;
 
@@ -81,8 +76,6 @@ public class Mw {
     // client only initialization
     // oops, no idea why I was using a ModLoader method to get the Minecraft instance before
     this.mc = Minecraft.getMinecraft();
-
-    this.initialized = false;
   }
 
   public String getWorldName() {
@@ -138,11 +131,7 @@ public class Mw {
     newTextureSize >>= 1;
 
     Config.instance.configTextureSize = newTextureSize;
-    if (this.initialized) {
-      // if we are already up and running need to close and reinitialize the map texture and
-      // region manager.
-      this.reloadMapTexture();
-    }
+    this.reloadMapTexture();
   }
 
   public void addDimension(int dimension) {
@@ -193,7 +182,7 @@ public class Mw {
     }
   }
 
-  public void teleportToMapPos(MapView mapView, int x, int y, int z) {
+  public void teleportToMapPos(final AreaMap areaMap, int x, int y, int z) {
     if (!Config.instance.teleportCommand.equals("warp")) {
       double scale = 1.0;
       this.teleportTo((int) (x / scale), y, (int) (z / scale));
@@ -239,12 +228,7 @@ public class Mw {
   // Initialization and Cleanup
   ////////////////////////////////
   protected void load() {
-    if ((this.mc.theWorld == null) || (this.mc.thePlayer == null)) {
-      log.info("Mw.load: world or player is null, cannot load yet");
-      return;
-    }
-
-    log.info("Mw.load: loading...");
+    MapWriter.log.info("Mw.load: loading...");
 
     IntegratedServer server = this.mc.getIntegratedServer();
     this.multiplayer = (server == null);
@@ -257,7 +241,7 @@ public class Mw {
       if (d.isDirectory()) {
         actualSaveDir = d;
       } else {
-        log.error("Savedir override does not exist: " + Config.instance.saveDirOverride);
+        MapWriter.log.error("Savedir override does not exist: " + Config.instance.saveDirOverride);
       }
     }
 
@@ -275,11 +259,13 @@ public class Mw {
       this.imageDir.mkdirs();
     }
     if (!this.imageDir.isDirectory()) {
-      log.error("Could not create image directory: ", this.imageDir.getPath());
+      MapWriter.log.error("Could not create image directory: ", this.imageDir.getPath());
     }
 
     this.tickCounter = 0;
     this.onPlayerDeathAlreadyFired = false;
+    this.miniMap.setSize(Config.instance.miniMapSize, Config.instance.mapMargin);
+    this.miniMap.setMapAnchor(Config.instance.miniMapAnchor);
 
 //    ColorConvert.reset(); // will as well fetch Minecraft block texture, which has to be done from the main thread
     //this.multiplayer = !this.mc.isIntegratedServerRunning();
@@ -292,8 +278,6 @@ public class Mw {
 
     this.chunkManager = new ChunkManager();
 
-    this.initialized = true;
-
     this.chunkManager.start();
     this.regionManager.start();
   }
@@ -303,7 +287,7 @@ public class Mw {
     try {
       if (backgroundExecutor.awaitTermination(5, TimeUnit.SECONDS) == false) {
         final List<Runnable> remainingTasks = backgroundExecutor.shutdownNow();
-        FMLLog.bigWarning("Unable to terminate remaining " + remainingTasks.size() + " tasks. Data may be lost!");
+        MapWriter.log.error("Unable to terminate remaining " + remainingTasks.size() + " tasks. Data may be lost!");
       }
     } catch (InterruptedException e) {
       // whatever, do it yourself JVM!
@@ -311,88 +295,76 @@ public class Mw {
   }
 
   public void close() {
+    MapWriter.log.info("Mw.close: closing...");
 
-    log.info("Mw.close: closing...");
-
-    if (this.initialized) {
-      this.initialized = false;
+    if (this.chunkManager != null) {
       this.chunkManager.stop();
-      this.regionManager.stop();
-
       this.chunkManager.removeAll();
-
-      if (this.regionManager != null) {
-        regionManager.dispose();
-      }
+    }
+    if (this.regionManager != null) {
+      this.regionManager.stop();
+      regionManager.dispose();
       this.regionManager = null;
+    }
 
+    if (this.markerManager != null) {
       this.markerManager.save();
       this.markerManager = null;
-
-      this.saveWorldConfig();
-      Config.instance.save();
-
-      this.tickCounter = 0;
     }
+
+    this.saveWorldConfig();
+    Config.instance.save();
+
+    this.tickCounter = 0;
   }
 
   ////////////////////////////////
-  // Event handlers
-  ////////////////////////////////
+// Event handlers
+////////////////////////////////
   public void onWorldLoad(final World world) {
-    //MwUtil.log("onWorldLoad: %s, name %s, dimension %d",
-    //		world,
-    //		world.getWorldInfo().getWorldName(),
-    //		world.provider.dimensionId);
+    this.load();
 
     this.player.dimensionID = world.provider.dimensionId;
-    if (this.initialized) {
-      this.addDimension(this.player.dimensionID);
-    }
+    this.addDimension(this.player.dimensionID);
   }
 
-  public void onWorldUnload(World world) {
-    //MwUtil.log("onWorldUnload: %s, name %s, dimension %d",
-    //		world,
-    //		world.getWorldInfo().getWorldName(),
-    //		world.provider.dimensionId);
+  public void onWorldUnload(final World world) {
   }
 
-  public void onTick() {
-    if (this.initialized == false) {
-      this.load();
-      chunkManager.start();
-      FMLLog.info("GUITick: initialized");
-    }
+  public void renderGUI() {
+    this.player.update();
+    this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180; // convert from MC rotation to north
 
-    this.regionManager.tick();
-
-    if (this.mc.thePlayer != null) {
-
-      this.player.update();
-      this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180;
-
-      // check if the game over screen is being displayed and if so 
-      // (thanks to Chrixian for this method of checking when the player is dead)
-      if (this.mc.currentScreen instanceof GuiGameOver) {
-        if (!this.onPlayerDeathAlreadyFired) {
-          this.onPlayerDeath();
-          this.onPlayerDeathAlreadyFired = true;
-        }
-      } else if (!(this.mc.currentScreen instanceof MwGui)) {
-        // if the player is not dead
-        this.onPlayerDeathAlreadyFired = false;
+    // check if the game over screen is being displayed and if so 
+    // (thanks to Chrixian for this method of checking when the player is dead)
+    if (this.mc.currentScreen instanceof GuiGameOver) {
+      if (!this.onPlayerDeathAlreadyFired) {
+        this.onPlayerDeath();
+        this.onPlayerDeathAlreadyFired = true;
       }
+    } else if (!(this.mc.currentScreen instanceof MwGui)) {
+      // if the player is not dead
+      this.onPlayerDeathAlreadyFired = false;
+    }
+  }
 
-      ++this.tickCounter;
+  public void renderMiniMap() {
+    this.player.update();
+    this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180; // convert from MC rotation to north
+
+    this.miniMap.draw();
+  }
+
+  public void onPostRenderTick() {
+    ++this.tickCounter;
+
+    if (this.regionManager != null) {
+      this.regionManager.updateRegionTextureData();
     }
   }
 
   // add chunk to the set of loaded chunks
   public void onChunkLoad(Chunk chunk) {
-    if (this.initialized == false) {
-      this.load();
-    }
     if ((chunk != null) && (chunk.worldObj instanceof net.minecraft.client.multiplayer.WorldClient)) {
       this.chunkManager.addChunk(chunk);
     }
@@ -401,7 +373,7 @@ public class Mw {
   // remove chunk from the set of loaded chunks.
   // convert to mwchunk and write chunk to region file if in multiplayer.
   public void onChunkUnload(Chunk chunk) {
-    if (this.initialized && (chunk != null) && (chunk.worldObj instanceof net.minecraft.client.multiplayer.WorldClient)) {
+    if ((chunk != null) && (chunk.worldObj instanceof net.minecraft.client.multiplayer.WorldClient)) {
       this.chunkManager.removeChunk(chunk);
     }
   }
@@ -409,7 +381,7 @@ public class Mw {
   // from onTick when mc.currentScreen is an instance of GuiGameOver
   // it's the only option to detect death client side
   public void onPlayerDeath() {
-    if (this.initialized && (Config.instance.maxDeathMarkers > 0)) {
+    if (Config.instance.maxDeathMarkers > 0) {
       this.player.update();
       this.mapRotationDegrees = -this.mc.thePlayer.rotationYaw + 180;
       int deleteCount = this.markerManager.countMarkersInGroup("playerDeaths") - Config.instance.maxDeathMarkers + 1;
@@ -427,7 +399,7 @@ public class Mw {
 
   public void onKeyDown(KeyBinding kb) {
     // make sure not in GUI element (e.g. chat box)
-    if ((this.mc.currentScreen == null) && (this.initialized)) {
+    if (this.mc.currentScreen == null) {
       //Mw.log("client tick: %s key pressed", kb.keyDescription);
 
       if (kb == MwKeyHandler.keyMapMode) {

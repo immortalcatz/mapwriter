@@ -5,6 +5,7 @@ package mapwriter;
 import java.util.Objects;
 import static mapwriter.Mw.catOptions;
 import mapwriter.forge.MwConfig;
+import mapwriter.gui.MapAnchor;
 
 /**
  * @author Two
@@ -32,6 +33,9 @@ public class Config {
   public boolean regionFileOutputEnabledSP = true;
   public boolean regionFileOutputEnabledMP = true;
   public int backgroundTextureMode = 0;
+  public int mapMargin = 4;
+  public int miniMapSize = 300;
+  public MapAnchor miniMapAnchor = MapAnchor.center;
 
   protected MwConfig configFile;
 

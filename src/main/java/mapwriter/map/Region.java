@@ -79,7 +79,8 @@ public class Region {
 
   public void draw() {
     GL11.glPushMatrix();
-    GL11.glTranslatef(regionID.x, regionID.z, 0.0f);
+//    GL11.glLoadIdentity();
+//    GL11.glTranslatef(regionID.x, regionID.z, 0.0f);
     this.texture.bind();
     Render.drawTexturedRect(0, 0, this.texture.width, this.texture.height);
     this.texture.unbind();

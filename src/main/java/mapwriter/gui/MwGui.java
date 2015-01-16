@@ -1,6 +1,5 @@
 package mapwriter.gui;
 
-
 import mapwriter.Mw;
 import mapwriter.forge.MwKeyHandler;
 import mapwriter.map.Marker;
@@ -13,6 +12,7 @@ import org.lwjgl.input.Mouse;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import mapwriter.Config;
+import mapwriter.forge.MapWriter;
 
 @SideOnly(Side.CLIENT)
 public class MwGui extends GuiScreen {
@@ -85,13 +85,13 @@ public class MwGui extends GuiScreen {
   // is resized
   @Override
   public void initGui() {
-    Mw.log.debug("initGui");
+    MapWriter.log.info("initGui");
   }
 
   // called when a button is pressed
   @Override
   protected void actionPerformed(GuiButton button) {
-    Mw.log.debug("actionPerformed");
+    MapWriter.log.info("actionPerformed");
   }
 
   public void exitGui() {
@@ -442,6 +442,8 @@ public class MwGui extends GuiScreen {
     }
 
     // draw the map
+    this.mapDisplay.setSize(this.width, this.height, 4);
+    this.mapDisplay.setCenter(this.width / 2, this.height / 2);
     this.mapDisplay.draw();
 
     // let the renderEngine know we have changed the texture.

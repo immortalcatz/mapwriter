@@ -11,8 +11,6 @@ import net.minecraft.util.ResourceLocation;
 
 public class MwGuiOptionSlot extends GuiSlot {
 
-  protected static final int DEFAULT_MARGIN = 10;
-
   //private GuiScreen parentScreen;
   private final Minecraft mc;
 
@@ -166,16 +164,16 @@ public class MwGuiOptionSlot extends GuiSlot {
         this.miniMapPositionIndex = this.miniMapPositionIndex.next();
         switch (this.miniMapPositionIndex) {
           case top_right:
-            Mw.instance.miniMap.setCenter(mc.displayWidth, mc.displayHeight, DEFAULT_MARGIN);
+            Mw.instance.miniMap.setCenter(mc.displayWidth, mc.displayHeight, Config.instance.mapMargin);
             break;
           case top_left:
-            Mw.instance.miniMap.setCenter(0, mc.displayHeight, DEFAULT_MARGIN);
+            Mw.instance.miniMap.setCenter(0, mc.displayHeight, Config.instance.mapMargin);
             break;
           case bottom_right:
-            Mw.instance.miniMap.setCenter(mc.displayWidth, 0, DEFAULT_MARGIN);
+            Mw.instance.miniMap.setCenter(mc.displayWidth, 0, Config.instance.mapMargin);
             break;
           case bottom_left:
-            Mw.instance.miniMap.setCenter(0, 0, DEFAULT_MARGIN);
+            Mw.instance.miniMap.setCenter(0, 0, Config.instance.mapMargin);
             break;
           default:
             break;

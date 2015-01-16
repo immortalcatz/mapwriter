@@ -11,7 +11,7 @@ import org.lwjgl.opengl.GL11;
 /**
  * @author Two
  */
-public class MapView {
+public class AreaMap {
 
   protected int dimensionID;
   protected int width;
@@ -22,7 +22,7 @@ public class MapView {
   protected List<Region> regions = null;
   protected boolean requiresUpdate = true;
 
-  public MapView() {
+  public AreaMap() {
   }
 
   protected void updateView() {
@@ -42,7 +42,7 @@ public class MapView {
     this.updateView();
     GL11.glPushMatrix();
 
-    GL11.glTranslated(-worldCoordLeft, -worldCoordTop, 0.0);
+    GL11.glTranslated(-centerX, -centerZ, 0.0);
     for (final Region region : regions) {
       region.draw();
     }

@@ -43,7 +43,7 @@ public class MwConfig extends Configuration {
           value &= 0xffffffffL;
         }
       } catch (NumberFormatException e) {
-        Mw.log.warn("Could not read colour from config file " + category + "->" + key);
+        MapWriter.log.warn("Could not read colour from config file " + category + "->" + key);
         value = -1;
       }
     }
